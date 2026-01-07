@@ -106,9 +106,11 @@ actor GeminiService {
         1. Identify 3-5 specific cleaning/tidying tasks based on what you actually SEE.
         Be specific (e.g., "Pick up the blue shirt from the floor" not "Tidy up").
         Each task should be completable in under 5 minutes.
+        Avoid repeating wording across tasks. Each task must be distinct and grounded in visible items.
 
         2. Write a 2-3 sentence reaction in your character's voice about what you notice.
         \(character.voiceGuidance)
+        Avoid clichés and repeated phrases. Keep it fresh each time.
 
         Respond with this EXACT JSON format:
         {

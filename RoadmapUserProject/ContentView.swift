@@ -423,7 +423,9 @@ struct HomeTab: View {
     @EnvironmentObject private var appViewModel: AppViewModel
 
     private var verificationRooms: [Room] {
-        appViewModel.rooms.filter { $0.pendingTaskCount > 0 }
+        appViewModel.rooms
+            .filter { $0.pendingTaskCount > 0 }
+            .sorted { $0.pendingTaskCount > $1.pendingTaskCount }
     }
 
     var body: some View {
@@ -1637,7 +1639,7 @@ struct RoomRow: View {
                 Text(room.name)
                     .font(.babciaHeadline)
 
-                Text("\(room.tasks.count) tasks")
+                Text("\(room.pendingTaskCount) pending")
                     .font(.babciaCaption)
                     .foregroundColor(.secondary)
             }
