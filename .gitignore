@@ -1,0 +1,32 @@
+
+# Xcode
+.DS_Store
+UserInterfaceState.xcuserstate
+*.moved-aside
+DerivedData
+.idea/
+*.hmap
+*.ipa
+*.pkg
+*.xcarchive
+
+# Swift Package Manager
+.swiftpm/xcode
+.build/
+
+# User Settings
+xcuserdata/
+
+# CocoaPods
+Pods/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Misc
+.env
+config.toml
+secrets.sh
