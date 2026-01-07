@@ -27,8 +27,10 @@ struct BabciaApp: App {
     }
 
     private func configureAppearance() {
-        let titleFont = UIFont(name: "LinLibertineB", size: 20) ?? UIFont.systemFont(ofSize: 20, weight: .semibold)
-        let largeTitleFont = UIFont(name: "LinLibertineB", size: 32) ?? UIFont.systemFont(ofSize: 32, weight: .bold)
+        let titleFont = UIFont(name: BabciaFontName.bold, size: 20)
+            ?? UIFont.systemFont(ofSize: 20, weight: .semibold)
+        let largeTitleFont = UIFont(name: BabciaFontName.bold, size: 32)
+            ?? UIFont.systemFont(ofSize: 32, weight: .bold)
 
         let navAppearance = UINavigationBarAppearance()
         navAppearance.configureWithTransparentBackground()
@@ -40,7 +42,8 @@ struct BabciaApp: App {
         navBar.scrollEdgeAppearance = navAppearance
         navBar.compactAppearance = navAppearance
 
-        let tabFont = UIFont(name: "LinLibertine", size: 11) ?? UIFont.systemFont(ofSize: 11, weight: .regular)
+        let tabFont = UIFont(name: BabciaFontName.regular, size: 11)
+            ?? UIFont.systemFont(ofSize: 11, weight: .regular)
         let tabAppearance = UITabBarAppearance()
         tabAppearance.configureWithTransparentBackground()
         tabAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.font: tabFont]

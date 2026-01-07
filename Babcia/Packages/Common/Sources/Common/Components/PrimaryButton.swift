@@ -27,15 +27,17 @@ public struct PrimaryButton: View {
                         .scaleEffect(0.8)
                 } else {
                     Text(title)
-                        .font(.babciaHeadline)
+                        .font(.babcia(.labelLg))
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding()
+            .babciaFullWidth()
+            .padding(.vertical, BabciaSpacing.md)
+            .padding(.horizontal, BabciaSpacing.lg)
             .foregroundColor(.white)
         }
         .disabled(isLoading)
         .tint(.blue)
-        .babciaGlassButton()
+        .babciaGlassButtonProminent()
+        .babciaTouchTarget(min: BabciaSize.touchLarge)
     }
 }

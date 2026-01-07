@@ -21,14 +21,10 @@ public struct CustomTextField: View {
     public var body: some View {
         Group {
             if isSecure {
-                SecureField(placeholder, text: $text)
+                BabciaSecureField(placeholder, text: $text)
             } else {
-                TextField(placeholder, text: $text)
+                BabciaTextField(placeholder, text: $text)
             }
         }
-        .font(.babciaBody)
-        .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(10)
     }
 }
