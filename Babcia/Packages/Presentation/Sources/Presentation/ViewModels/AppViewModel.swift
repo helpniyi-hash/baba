@@ -262,6 +262,7 @@ public final class AppViewModel: ObservableObject {
                     room: room,
                     afterImage: image,
                     apiKey: apiKey,
+                    modeCharacter: settings.selectedCharacter,
                     captureSource: captureSource
                 )
                 rooms[index] = outcome.room
@@ -301,6 +302,7 @@ public final class AppViewModel: ObservableObject {
                     room: room,
                     afterImage: snapshot,
                     apiKey: settings.geminiAPIKey,
+                    modeCharacter: settings.selectedCharacter,
                     captureSource: .homeAssistant
                 )
                 rooms[index] = outcome.room
@@ -321,7 +323,7 @@ public final class AppViewModel: ObservableObject {
     public func manualOverride(roomID: UUID) {
         guard let index = rooms.firstIndex(where: { $0.id == roomID }) else { return }
         var room = rooms[index]
-        let isTrusted = room.character == .wellnessX
+        let isTrusted = settings.selectedCharacter == .wellnessX
         var gainedXP = 0
         var didGain = false
 
@@ -365,7 +367,7 @@ public final class AppViewModel: ObservableObject {
         if isCompleted {
             room.tasks[taskIndex].isCompleted = true
             room.tasks[taskIndex].completedAt = Date()
-            if room.character == .wellnessX {
+            if settings.selectedCharacter == .wellnessX {
                 room.tasks[taskIndex].verificationState = .verified
                 room.tasks[taskIndex].verificationConfidence = 1.0
                 room.tasks[taskIndex].verificationNote = "Trusted manual"

@@ -1,13 +1,13 @@
 //
-//  RoadmapUserProjectUITests.swift
-//  RoadmapUserProjectUITests
+//  BabciaUITests.swift
+//  BabciaUITests
 //
 //  Created by Prank on 17/9/25.
 //
 
 import XCTest
 
-final class RoadmapUserProjectUITests: XCTestCase {
+final class BabciaUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

@@ -1,6 +1,6 @@
 //
-//  RoadmapUserProjectApp.swift
-//  RoadmapUserProject
+//  BabciaApp.swift
+//  Babcia
 //
 //  Created by Prank on 17/9/25.
 //
@@ -11,7 +11,7 @@ import Common
 import UIKit
 
 @main
-struct RoadmapUserProjectApp: App {
+struct BabciaApp: App {
     @StateObject private var appViewModel = DIContainer.shared.makeAppViewModel()
 
     init() {

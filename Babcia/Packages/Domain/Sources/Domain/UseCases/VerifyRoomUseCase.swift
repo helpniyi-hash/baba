@@ -13,6 +13,7 @@ public struct VerifyRoomUseCase: Sendable {
         room: Room,
         afterImage: UIImage,
         apiKey: String,
+        modeCharacter: BabciaCharacter,
         captureSource: CaptureSource = .verify
     ) async throws -> RoomVerificationOutcome {
         guard !apiKey.isEmpty else {
@@ -39,7 +40,7 @@ public struct VerifyRoomUseCase: Sendable {
             apiKey: apiKey
         )
 
-        let threshold = room.character.verificationConfidenceThreshold
+        let threshold = modeCharacter.verificationConfidenceThreshold
         var gainedXP = 0
         var didGain = false
 

@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  RoadmapUserProject
+//  Babcia
 //
 //  Created by Prank on 17/9/25.
 //
@@ -1300,6 +1300,8 @@ struct GalleryStackSection: View {
 struct GalleryStackCarousel: View {
     let items: [GalleryItem]
     let onSelect: (GalleryItem) -> Void
+    @State private var currentIndex = 0
+    @GestureState private var dragOffset: CGFloat = 0
 
     private var cardWidth: CGFloat {
         min(UIScreen.main.bounds.width * 0.72, 280)
@@ -1310,20 +1312,45 @@ struct GalleryStackCarousel: View {
     }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: -36) {
-                ForEach(items) { item in
+        ZStack {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                let position = index - currentIndex
+                if abs(position) <= 2 {
                     GalleryStackCard(item: item)
                         .frame(width: cardWidth, height: cardHeight)
+                        .scaleEffect(position == 0 ? 1.0 : 0.94)
+                        .offset(
+                            x: CGFloat(position) * 22 + dragOffset * 0.4,
+                            y: CGFloat(abs(position)) * 12
+                        )
+                        .zIndex(Double(10 - abs(position)))
+                        .allowsHitTesting(position == 0)
                         .onTapGesture {
-                            onSelect(item)
+                            if position == 0 {
+                                onSelect(item)
+                            }
                         }
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
         }
+        .frame(maxWidth: .infinity)
         .frame(height: cardHeight + 16)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture()
+                .updating($dragOffset) { value, state, _ in
+                    state = value.translation.width
+                }
+                .onEnded { value in
+                    let threshold: CGFloat = 50
+                    if value.translation.width < -threshold {
+                        currentIndex = min(currentIndex + 1, items.count - 1)
+                    } else if value.translation.width > threshold {
+                        currentIndex = max(currentIndex - 1, 0)
+                    }
+                }
+        )
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentIndex)
     }
 }
 
@@ -1702,18 +1729,17 @@ struct RoomDetailView: View {
                     VStack(spacing: 16) {
                         RoomHeaderFullBleed(room: room, blendColor: $headerBlendColor)
                             .padding(.horizontal, -16)
+                            .ignoresSafeArea(edges: .top)
 
                         VStack(alignment: .leading, spacing: 16) {
-                            RoomModeSummary(room: room)
+                            RoomModeSummary(room: room, modeCharacter: appViewModel.settings.selectedCharacter)
 
                             if let advice = room.babciaAdvice, !advice.isEmpty {
                                 AdviceCard(message: advice)
                             }
 
                             if room.tasks.isEmpty {
-                                EmptyTasksCard {
-                                    showingCameraMenu = true
-                                }
+                                EmptyTasksCard()
                             } else {
                                 VerificationSummaryCard(room: room)
 
@@ -1733,8 +1759,7 @@ struct RoomDetailView: View {
 
                             if room.manualOverrideAvailable {
                                 ManualOverrideCard(
-                                    isTrusted: room.character == .wellnessX,
-                                    onRescan: { showingCameraMenu = true },
+                                    isTrusted: appViewModel.settings.selectedCharacter == .wellnessX,
                                     onOverride: { showingManualOverrideConfirm = true }
                                 )
                             }
@@ -1746,7 +1771,6 @@ struct RoomDetailView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
                     .padding(.bottom, BabciaSpacing.tabBarInset)
                 }
                 .background(
@@ -1756,8 +1780,7 @@ struct RoomDetailView: View {
                         endPoint: .bottom
                     )
                 )
-                .navigationTitle(room.name)
-                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
@@ -1810,10 +1833,10 @@ struct RoomDetailView: View {
                     }
                 }
                 .alert(item: $pendingManualToggle) { intent in
-                    let messageText = room.character == .wellnessX
+                    let messageText = appViewModel.settings.selectedCharacter == .wellnessX
                         ? "Trusted mode grants XP immediately for manual checks."
                         : "Manual checks do not grant XP until Babcia verifies."
-                    Alert(
+                    return Alert(
                         title: Text("Mark as done?"),
                         message: Text(messageText),
                         primaryButton: .default(Text("Mark")) {
@@ -1828,7 +1851,7 @@ struct RoomDetailView: View {
                         appViewModel.manualOverride(roomID: room.id)
                     }
                 } message: {
-                    let messageText = room.character == .wellnessX
+                    let messageText = appViewModel.settings.selectedCharacter == .wellnessX
                         ? "Trusted mode grants XP immediately for manual completions."
                         : "Babcia prefers a real scan. Manual override logs self-declared completion and grants no XP."
                     Text(messageText)
@@ -1944,6 +1967,7 @@ struct RoomHeaderFullBleed: View {
 
 struct RoomModeSummary: View {
     let room: Room
+    let modeCharacter: BabciaCharacter
 
     var body: some View {
         let accent = Color(hex: room.character.accentHex)
@@ -1959,9 +1983,12 @@ struct RoomModeSummary: View {
                 )
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Mode: \(room.character.verificationModeName)")
+                Text("Mode: \(modeCharacter.verificationModeName)")
                     .font(.babciaHeadline)
-                Text(room.character.verificationModeDescription)
+                Text(modeCharacter.verificationModeDescription)
+                    .font(.babciaCaption)
+                    .foregroundColor(.secondary)
+                Text("Room Babcia: \(room.character.displayName)")
                     .font(.babciaCaption)
                     .foregroundColor(.secondary)
             }
@@ -1993,7 +2020,7 @@ struct VerificationSummaryCard: View {
             Text("Verification")
                 .font(.babciaHeadline)
 
-            Text("Use the camera button to verify or update the room baseline.")
+            Text("Use the top camera button to verify or update the room baseline.")
                 .font(.babciaCaption)
                 .foregroundColor(.secondary)
 
@@ -2039,29 +2066,14 @@ struct AdviceCard: View {
 }
 
 struct EmptyTasksCard: View {
-    let onScan: () -> Void
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("No tasks yet")
                 .font(.babciaHeadline)
 
-            Text("Scan the room to get a dream vision and a task list.")
+            Text("Use the top camera button to scan this room and generate tasks.")
                 .font(.babciaCaption)
                 .foregroundColor(.secondary)
-
-            Button(action: onScan) {
-                HStack {
-                    Image(systemName: BabciaIcon.camera.systemName)
-                    Text("Scan Room")
-                        .font(.babciaHeadline)
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-            }
-            .tint(.black)
-            .babciaGlassButton()
         }
         .padding(BabciaSpacing.cardPadding)
         .babciaCardSurface()
@@ -2171,7 +2183,6 @@ struct TaskStatusChip: View {
 
 struct ManualOverrideCard: View {
     let isTrusted: Bool
-    let onRescan: () -> Void
     let onOverride: () -> Void
 
     var body: some View {
@@ -2181,30 +2192,18 @@ struct ManualOverrideCard: View {
 
             Text(isTrusted
                  ? "Trusted mode allows manual completion with XP."
-                 : "Try a clearer scan, or manually override if you must. This is logged as self-declared.")
+                 : "Try a clearer scan using the top camera button, or manually override if you must. This is logged as self-declared.")
                 .font(.babciaCaption)
                 .foregroundColor(.secondary)
 
-            HStack(spacing: 12) {
-                Button(action: onRescan) {
-                    Text("Rescan")
-                        .font(.babciaCaption)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                }
-                .tint(.black)
-                .babciaGlassButton()
-
-                Button(action: onOverride) {
-                    Text("Manual override")
-                        .font(.babciaCaption)
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                }
-                .babciaGlassButton()
+            Button(action: onOverride) {
+                Text("Manual override")
+                    .font(.babciaCaption)
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
             }
+            .babciaGlassButton()
         }
         .padding(BabciaSpacing.cardPadding)
         .babciaCardSurface()
@@ -2555,7 +2554,7 @@ struct SettingsTab: View {
                         }
                     }
 
-                    Picker("App Mode", selection: Binding(
+                    Picker("Babcia Mode", selection: Binding(
                         get: { appViewModel.settings.selectedCharacter },
                         set: { appViewModel.updateSelectedCharacter($0) }
                     )) {
@@ -2564,7 +2563,7 @@ struct SettingsTab: View {
                         }
                     }
 
-                    Text("App Mode controls how strict Babcia is when verifying a room scan.")
+                    Text("Babcia Mode controls how strict verification feels.")
                         .font(.babciaCaption)
                         .foregroundColor(.secondary)
                 }

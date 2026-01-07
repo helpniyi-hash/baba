@@ -1,13 +1,13 @@
 //
-//  RoadmapUserProjectUITestsLaunchTests.swift
-//  RoadmapUserProjectUITests
+//  BabciaUITestsLaunchTests.swift
+//  BabciaUITests
 //
 //  Created by Prank on 17/9/25.
 //
 
 import XCTest
 
-final class RoadmapUserProjectUITestsLaunchTests: XCTestCase {
+final class BabciaUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
