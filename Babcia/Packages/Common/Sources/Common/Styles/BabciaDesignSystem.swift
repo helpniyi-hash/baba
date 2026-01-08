@@ -15,8 +15,8 @@ public enum BabciaSurfaceStyle {
 
     var fallbackMaterial: Material {
         switch self {
-        case .card: return .ultraThinMaterial
-        case .subtle: return .thinMaterial
+        case .card: return .thinMaterial
+        case .subtle: return .ultraThinMaterial
         case .strong: return .regularMaterial
         }
     }

@@ -1,5 +1,16 @@
 import SwiftUI
 
+private struct BabciaUsesCustomTabBarKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+public extension EnvironmentValues {
+    var babciaUsesCustomTabBar: Bool {
+        get { self[BabciaUsesCustomTabBarKey.self] }
+        set { self[BabciaUsesCustomTabBarKey.self] = newValue }
+    }
+}
+
 public extension View {
     func babciaScreenPadding() -> some View {
         padding(.horizontal, BabciaSpacing.screenHorizontal)
@@ -11,7 +22,7 @@ public extension View {
     }
 
     func babciaTabBarPadding() -> some View {
-        padding(.bottom, BabciaSpacing.tabBarClearance)
+        modifier(BabciaTabBarPaddingModifier())
     }
 
     func babciaCardPadding() -> some View {
@@ -81,24 +92,13 @@ private struct BabciaGlassCardModifier: ViewModifier {
         let sizedContent: AnyView = fullWidth
             ? AnyView(content.frame(maxWidth: .infinity, alignment: .leading))
             : AnyView(content)
-        if #available(iOS 26.0, *) {
-            let resolvedVariant: BabciaGlassVariant = reduceTransparency ? .identity : variant
-            let glassLayer: AnyView = interactive
-                ? AnyView(shape.glassEffect(resolvedVariant.glass.interactive(), in: shape))
-                : AnyView(shape.glassEffect(resolvedVariant.glass, in: shape))
-            return AnyView(
-                sizedContent
-                    .background(glassLayer)
-                    .clipShape(shape)
-                    .overlay(shape.stroke(Color.white.opacity(style.strokeOpacity), lineWidth: 1))
-                    .babciaShadow(shadow)
-            )
-        }
+        // Liquid Glass is reserved for navigation/controls; content surfaces use Materials.
+        // Reduce Transparency is handled by the system materials automatically.
         return AnyView(
             sizedContent
                 .background(shape.fill(style.fallbackMaterial))
-                .overlay(shape.stroke(Color.white.opacity(style.strokeOpacity), lineWidth: 1))
-                .babciaShadow(shadow)
+                .overlay(shape.stroke(Color.primary.opacity(style.strokeOpacity), lineWidth: 0.5))
+                .babciaShadow(reduceTransparency ? .none : shadow)
         )
     }
 }
@@ -108,24 +108,32 @@ private struct BabciaGlassButtonModifier: ViewModifier {
     let prominent: Bool
 
     func body(content: Content) -> some View {
-        let variant: BabciaGlassVariant = reduceTransparency ? .identity : .clear
         if #available(iOS 26.0, *) {
             if prominent {
                 return AnyView(
                     content
                         .buttonStyle(.glassProminent)
-                        .babciaInteractiveGlassEffect(variant)
                 )
             }
             return AnyView(
                 content
                     .buttonStyle(.glass)
-                    .babciaInteractiveGlassEffect(variant)
             )
         }
         if prominent {
             return AnyView(content.buttonStyle(BorderedProminentButtonStyle()))
         }
         return AnyView(content.buttonStyle(BorderedButtonStyle()))
+    }
+}
+
+private struct BabciaTabBarPaddingModifier: ViewModifier {
+    @Environment(\.babciaUsesCustomTabBar) private var usesCustomTabBar
+
+    func body(content: Content) -> some View {
+        if usesCustomTabBar {
+            return AnyView(content.padding(.bottom, BabciaSpacing.tabBarClearance))
+        }
+        return AnyView(content)
     }
 }

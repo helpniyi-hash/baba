@@ -15,7 +15,7 @@ struct HomeTab: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .vibrant))
+                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .subtle))
 
                 ScrollView {
                     VStack(spacing: BabciaSpacing.sectionGap) {
@@ -39,7 +39,6 @@ struct HomeTab: View {
                         RecentActivityCard()
                     }
                     .babciaScreenPadding()
-                    .babciaTabBarPadding()
                 }
             }
             .navigationTitle("Home")

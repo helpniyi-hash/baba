@@ -93,7 +93,6 @@ struct SettingsTab: View {
                         }
                     }
                     .babciaScreenPadding()
-                    .babciaTabBarPadding()
                 }
             }
             .navigationTitle("Settings")
@@ -274,7 +273,6 @@ struct SettingsDetailView: View {
                         .babciaFullWidthLeading()
                     }
                     .babciaScreenPadding()
-                    .babciaTabBarPadding()
                 }
             }
             .navigationTitle("Connections")

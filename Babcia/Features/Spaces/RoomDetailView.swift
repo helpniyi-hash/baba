@@ -35,53 +35,50 @@ struct RoomDetailView: View {
         Group {
             if let room {
                 ZStack {
-                    BabciaBackground(style: .dreamVision(room.dreamVisionURL, fallback: room.character), addsScrim: true)
+                    BabciaBackground(style: .gradient(room.character, .subtle))
 
                     ScrollView {
-                        VStack(spacing: BabciaSpacing.sectionGap) {
-                            RoomHeaderFullBleed(room: room)
+                        VStack(alignment: .leading, spacing: BabciaSpacing.sectionGap) {
+                            RoomHeroCard(room: room)
 
-                            VStack(alignment: .leading, spacing: BabciaSpacing.sectionGap) {
-                                RoomModeSummary(room: room, modeCharacter: appViewModel.settings.selectedCharacter)
+                            RoomModeSummary(room: room, modeCharacter: appViewModel.settings.selectedCharacter)
 
-                                if let advice = room.babciaAdvice, !advice.isEmpty {
-                                    AdviceCard(message: advice)
-                                }
-
-                                if room.tasks.isEmpty {
-                                    EmptyTasksCard()
-                                } else {
-                                    VerificationSummaryCard(room: room)
-
-                                    TaskList(room: room) { task, markComplete in
-                                        if markComplete {
-                                            pendingManualToggle = ManualToggleIntent(taskID: task.id, markComplete: true)
-                                        } else {
-                                            appViewModel.setManualTask(roomID: room.id, taskID: task.id, isCompleted: false)
-                                        }
-                                    }
-
-                                    if let lastVerified = room.lastVerifiedAt {
-                                        Text("Last verified: \(lastVerified.formatted(date: .abbreviated, time: .shortened))")
-                                            .font(.babcia(.caption))
-                                            .foregroundColor(.secondary)
-                                    }
-
-                                    if room.manualOverrideAvailable {
-                                        ManualOverrideCard(
-                                            isTrusted: appViewModel.settings.selectedCharacter == .wellnessX,
-                                            onOverride: { showingManualOverrideConfirm = true }
-                                        )
-                                    }
-                                }
-
-                                AutoScanCard(room: room)
-
-                                RoomStatsBar(room: room)
+                            if let advice = room.babciaAdvice, !advice.isEmpty {
+                                AdviceCard(message: advice)
                             }
-                            .babciaScreenPadding()
-                            .babciaTabBarPadding()
+
+                            if room.tasks.isEmpty {
+                                EmptyTasksCard()
+                            } else {
+                                VerificationSummaryCard(room: room)
+
+                                TaskList(room: room) { task, markComplete in
+                                    if markComplete {
+                                        pendingManualToggle = ManualToggleIntent(taskID: task.id, markComplete: true)
+                                    } else {
+                                        appViewModel.setManualTask(roomID: room.id, taskID: task.id, isCompleted: false)
+                                    }
+                                }
+
+                                if let lastVerified = room.lastVerifiedAt {
+                                    Text("Last verified: \(lastVerified.formatted(date: .abbreviated, time: .shortened))")
+                                        .font(.babcia(.caption))
+                                        .foregroundColor(.secondary)
+                                }
+
+                                if room.manualOverrideAvailable {
+                                    ManualOverrideCard(
+                                        isTrusted: appViewModel.settings.selectedCharacter == .wellnessX,
+                                        onOverride: { showingManualOverrideConfirm = true }
+                                    )
+                                }
+                            }
+
+                            AutoScanCard(room: room)
+
+                            RoomStatsBar(room: room)
                         }
+                        .babciaScreenPadding()
                     }
                 }
                 .toolbarBackground(.hidden, for: .navigationBar)
@@ -169,39 +166,61 @@ struct RoomDetailView: View {
     }
 }
 
-struct RoomHeaderFullBleed: View {
+struct RoomHeroCard: View {
     let room: Room
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: BabciaCorner.sheet, style: .continuous)
         ZStack(alignment: .bottomLeading) {
-            Rectangle()
-                .fill(Color.clear)
+            ZStack {
+                if let url = room.dreamVisionURL {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        default:
+                            Image(room.character.portraitAssetName)
+                                .resizable()
+                                .scaledToFill()
+                        }
+                    }
+                } else {
+                    Image(room.character.portraitAssetName)
+                        .resizable()
+                        .scaledToFill()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .clipped()
 
             LinearGradient(
                 colors: [
                     Color.clear,
-                    Color.black.opacity(colorScheme == .dark ? 0.6 : 0.4)
+                    Color.black.opacity(colorScheme == .dark ? 0.65 : 0.5)
                 ],
                 startPoint: .center,
                 endPoint: .bottom
             )
 
-            VStack(alignment: .leading, spacing: BabciaSpacing.xs) {
+            VStack(alignment: .leading, spacing: BabciaSpacing.xxs) {
                 Text(room.name)
                     .font(.babcia(.displaySm))
                     .foregroundColor(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.9)
+
                 Text(room.character.displayName)
                     .font(.babcia(.caption))
-                    .foregroundColor(.white.opacity(BabciaOpacity.strong))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(1)
             }
-            .babciaCardPadding()
-            .babciaGlassCard(style: .strong, cornerRadius: BabciaCorner.card, shadow: .md)
-            .babciaFullWidthLeading()
             .padding(BabciaSpacing.lg)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: BabciaSize.heroImage)
+        .aspectRatio(1, contentMode: .fit)
+        .clipShape(shape)
+        .overlay(shape.stroke(Color.white.opacity(0.14), lineWidth: 1))
+        .babciaShadow(.lg)
     }
 }
 

@@ -63,7 +63,7 @@ struct GalleryTab: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .primary))
+                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .subtle))
 
                 ScrollView {
                     VStack(spacing: BabciaSpacing.sectionGap) {
@@ -84,7 +84,6 @@ struct GalleryTab: View {
                         )
                     }
                     .babciaScreenPadding()
-                    .babciaTabBarPadding()
                 }
             }
             .navigationTitle("Gallery")
@@ -234,17 +233,20 @@ struct GalleryStackCard: View {
             VStack(alignment: .leading, spacing: BabciaSpacing.xxs) {
                 Text(item.title)
                     .font(.babcia(.headingSm))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                 Text(item.subtitle)
                     .font(.babcia(.caption))
-                    .foregroundColor(.white.opacity(BabciaOpacity.strong))
+                    .foregroundStyle(.secondary)
             }
             .padding(BabciaSpacing.sm)
-            .background(Color.black.opacity(0.45))
-            .cornerRadius(BabciaCorner.card)
+            .background(.thinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: BabciaCorner.card, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: BabciaCorner.card, style: .continuous)
+                    .stroke(Color.primary.opacity(0.10), lineWidth: 0.5)
+            )
             .padding(BabciaSpacing.sm)
         }
-        .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 6)
     }
 }
 
@@ -311,17 +313,20 @@ struct GalleryTile: View {
             VStack(alignment: .leading, spacing: BabciaSpacing.xxs) {
                 Text(item.title)
                     .font(.babcia(.caption))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.primary)
                 Text(item.subtitle)
                     .font(.babcia(.caption))
-                    .foregroundColor(.white.opacity(BabciaOpacity.strong))
+                    .foregroundStyle(.secondary)
             }
             .padding(BabciaSpacing.xs)
-            .background(Color.black.opacity(0.4))
-            .cornerRadius(BabciaCorner.card)
+            .background(.thinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: BabciaCorner.card, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: BabciaCorner.card, style: .continuous)
+                    .stroke(Color.primary.opacity(0.10), lineWidth: 0.5)
+            )
             .padding(BabciaSpacing.xs)
         }
-        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
     }
 }
 

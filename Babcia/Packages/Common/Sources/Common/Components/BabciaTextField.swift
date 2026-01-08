@@ -37,10 +37,10 @@ public struct BabciaTextField: View {
             TextField(
                 "",
                 text: $text,
-                prompt: Text(placeholder).foregroundColor(.white.opacity(BabciaOpacity.placeholder))
+                prompt: Text(placeholder).foregroundStyle(.secondary)
             )
             .font(.babcia(.bodyLg))
-            .foregroundColor(.white)
+            .foregroundStyle(.primary)
             .keyboardType(keyboardType)
             .textContentType(textContentType)
             .textInputAutocapitalization(capitalization)
@@ -52,7 +52,7 @@ public struct BabciaTextField: View {
                     text = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.white.opacity(BabciaOpacity.strong))
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear text")
@@ -64,25 +64,19 @@ public struct BabciaTextField: View {
         .overlay(fieldBorder)
         .scaleEffect(isFocused ? 1.01 : 1.0)
         .animation(BabciaAnimation.springSubtle, value: isFocused)
-        .tint(accentColor ?? .white)
+        .tint(accentColor ?? .accentColor)
         .babciaFullWidth()
     }
 
     @ViewBuilder
     private var fieldBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: BabciaCorner.input, style: .continuous)
-        if #available(iOS 26.0, *) {
-            shape
-                .babciaInteractiveGlassEffect(.clear, in: shape)
-        } else {
-            shape.fill(.ultraThinMaterial)
-        }
+        RoundedRectangle(cornerRadius: BabciaCorner.input, style: .continuous)
+            .fill(.thinMaterial)
     }
 
     private var fieldBorder: some View {
         RoundedRectangle(cornerRadius: BabciaCorner.input, style: .continuous)
-            .stroke(Color.white.opacity(isFocused ? 0.6 : 0.25), lineWidth: 1)
-            .shadow(color: Color.white.opacity(isFocused ? 0.25 : 0), radius: isFocused ? 6 : 0)
+            .stroke(Color.primary.opacity(isFocused ? 0.18 : 0.10), lineWidth: 1)
     }
 }
 
@@ -106,18 +100,18 @@ public struct BabciaSecureField: View {
                     SecureField(
                         "",
                         text: $text,
-                        prompt: Text(placeholder).foregroundColor(.white.opacity(BabciaOpacity.placeholder))
+                        prompt: Text(placeholder).foregroundStyle(.secondary)
                     )
                 } else {
                     TextField(
                         "",
                         text: $text,
-                        prompt: Text(placeholder).foregroundColor(.white.opacity(BabciaOpacity.placeholder))
+                        prompt: Text(placeholder).foregroundStyle(.secondary)
                     )
                 }
             }
             .font(.babcia(.bodyLg))
-            .foregroundColor(.white)
+            .foregroundStyle(.primary)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled(true)
             .focused($isFocused)
@@ -126,7 +120,7 @@ public struct BabciaSecureField: View {
                 isSecure.toggle()
             } label: {
                 Image(systemName: isSecure ? "eye.slash.fill" : "eye.fill")
-                    .foregroundColor(.white.opacity(BabciaOpacity.strong))
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(isSecure ? "Show password" : "Hide password")
@@ -137,24 +131,18 @@ public struct BabciaSecureField: View {
         .overlay(fieldBorder)
         .scaleEffect(isFocused ? 1.01 : 1.0)
         .animation(BabciaAnimation.springSubtle, value: isFocused)
-        .tint(accentColor ?? .white)
+        .tint(accentColor ?? .accentColor)
         .babciaFullWidth()
     }
 
     @ViewBuilder
     private var fieldBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: BabciaCorner.input, style: .continuous)
-        if #available(iOS 26.0, *) {
-            shape
-                .babciaInteractiveGlassEffect(.clear, in: shape)
-        } else {
-            shape.fill(.ultraThinMaterial)
-        }
+        RoundedRectangle(cornerRadius: BabciaCorner.input, style: .continuous)
+            .fill(.thinMaterial)
     }
 
     private var fieldBorder: some View {
         RoundedRectangle(cornerRadius: BabciaCorner.input, style: .continuous)
-            .stroke(Color.white.opacity(isFocused ? 0.6 : 0.25), lineWidth: 1)
-            .shadow(color: Color.white.opacity(isFocused ? 0.25 : 0), radius: isFocused ? 6 : 0)
+            .stroke(Color.primary.opacity(isFocused ? 0.18 : 0.10), lineWidth: 1)
     }
 }

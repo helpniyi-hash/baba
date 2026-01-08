@@ -24,19 +24,9 @@ public func BabciaGlassGroup<Content: View>(
     spacing: CGFloat? = nil,
     @ViewBuilder content: () -> Content
 ) -> some View {
-    if #available(iOS 26.0, *) {
-        if let spacing {
-            GlassEffectContainer(spacing: spacing) {
-                content()
-            }
-        } else {
-            GlassEffectContainer {
-                content()
-            }
-        }
-    } else {
-        content()
-    }
+    // Liquid Glass is reserved for the navigation layer (tab bars, toolbars, floating controls).
+    // Content layout should not live in GlassEffectContainer.
+    content()
 }
 
 public extension View {

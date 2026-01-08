@@ -58,7 +58,7 @@ struct HistoryView: View {
 
     var body: some View {
         ZStack {
-            BabciaBackground(style: .gradient(character, .primary))
+            BabciaBackground(style: .gradient(character, .subtle))
 
             ScrollView {
                 VStack(alignment: .leading, spacing: BabciaSpacing.listItemGap) {
@@ -76,7 +76,6 @@ struct HistoryView: View {
                     }
                 }
                 .babciaScreenPadding()
-                .babciaTabBarPadding()
             }
         }
         .navigationTitle("History")

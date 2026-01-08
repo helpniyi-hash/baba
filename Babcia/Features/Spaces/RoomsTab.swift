@@ -10,7 +10,7 @@ struct RoomsTab: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .vibrant))
+                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .subtle))
 
                 ScrollView {
                     VStack(spacing: BabciaSpacing.sectionGap) {
@@ -21,7 +21,6 @@ struct RoomsTab: View {
                         RoomsListCard(rooms: appViewModel.rooms)
                     }
                     .babciaScreenPadding()
-                    .babciaTabBarPadding()
                 }
             }
             .navigationTitle("Spaces")
@@ -183,10 +182,14 @@ struct RoomRow: View {
             VStack(alignment: .leading, spacing: BabciaSpacing.xxs) {
                 Text(room.name)
                     .font(.babcia(.headingSm))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
 
                 Text("\(room.pendingTaskCount) pending")
                     .font(.babcia(.caption))
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
 
             Spacer()
