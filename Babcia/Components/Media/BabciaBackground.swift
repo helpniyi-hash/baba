@@ -50,6 +50,8 @@ struct BabciaBackground: View {
                             CharacterBackground(character: fallback)
                         }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
                 } else {
                     CharacterBackground(character: fallback)
                 }

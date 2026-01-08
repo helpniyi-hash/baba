@@ -8,7 +8,7 @@ public enum BabciaSurfaceStyle {
     var strokeOpacity: Double {
         switch self {
         case .card: return 0.1
-        case .subtle: return 0.06
+        case .subtle: return 0.04
         case .strong: return 0.14
         }
     }

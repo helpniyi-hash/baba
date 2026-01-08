@@ -210,7 +210,6 @@ struct CharacterPicker: View {
                         .buttonStyle(BabciaSelectionButtonStyle(isSelected: character == selectedCharacter))
                         .accessibilityLabel("Select \(character.displayName)")
                         .accessibilityValue(Text(character == selectedCharacter ? "Selected" : "Not selected"))
-                        .babciaInteractiveGlassEffect(.clear)
                         .babciaGlassEffectID(character.id, in: characterNamespace)
                     }
                 }
@@ -245,11 +244,12 @@ struct CharacterCard: View {
             }
         }
         .padding(BabciaSpacing.cardPaddingCompact)
-        .background(Color.white.opacity(isSelected ? 0.2 : 0.1))
-        .cornerRadius(BabciaCorner.card)
-        .overlay(
-            RoundedRectangle(cornerRadius: BabciaCorner.card)
-                .stroke(Color.white.opacity(isSelected ? 0.6 : 0.2), lineWidth: 1)
+        .babciaGlassCard(
+            style: .card,
+            cornerRadius: BabciaCorner.card,
+            shadow: .sm,
+            interactive: true,
+            fullWidth: false
         )
     }
 }

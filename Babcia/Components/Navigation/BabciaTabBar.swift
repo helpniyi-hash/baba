@@ -15,17 +15,24 @@ struct BabciaTabBar: View {
                         BabciaTabItem(tab: tab, isSelected: tab == selectedTab)
                     }
                     .buttonStyle(BabciaTabButtonStyle())
-                    .babciaInteractiveGlassEffect(.clear)
                     .babciaGlassEffectID(tab.id, in: tabNamespace)
                 }
             }
             .padding(.horizontal, BabciaSpacing.md)
             .padding(.vertical, BabciaSpacing.sm)
             .babciaFullWidth()
+            .background(tabBarBackground)
         }
-        .babciaGlassCard(style: .strong, cornerRadius: BabciaCorner.tabBar, shadow: .lg)
         .padding(.horizontal, BabciaSpacing.screenHorizontal)
         .padding(.bottom, BabciaSpacing.sm)
         .accessibilityLabel("Main tabs")
+    }
+
+    private var tabBarBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: BabciaCorner.tabBar, style: .continuous)
+        return shape
+            .babciaGlassEffect(.clear, in: shape)
+            .overlay(shape.stroke(Color.white.opacity(0.14), lineWidth: 1))
+            .babciaShadow(.lg)
     }
 }

@@ -26,7 +26,6 @@ struct RoomDetailView: View {
     @State private var imagePickerSource: UIImagePickerController.SourceType = .photoLibrary
     @State private var imagePickerAction: RoomImageAction = .scan
     @State private var pendingManualToggle: ManualToggleIntent?
-    @State private var headerBlendColor: Color = Color(.systemGroupedBackground)
 
     private var room: Room? {
         appViewModel.rooms.first { $0.id == roomID }
@@ -36,13 +35,11 @@ struct RoomDetailView: View {
         Group {
             if let room {
                 ZStack {
-                    BabciaBackground(style: .dreamVision(room.dreamVisionURL, fallback: room.character))
+                    BabciaBackground(style: .dreamVision(room.dreamVisionURL, fallback: room.character), addsScrim: true)
 
                     ScrollView {
                         VStack(spacing: BabciaSpacing.sectionGap) {
-                            RoomHeaderFullBleed(room: room, blendColor: $headerBlendColor)
-                                .padding(.horizontal, -BabciaSpacing.screenHorizontal)
-                                .ignoresSafeArea(edges: .top)
+                            RoomHeaderFullBleed(room: room)
 
                             VStack(alignment: .leading, spacing: BabciaSpacing.sectionGap) {
                                 RoomModeSummary(room: room, modeCharacter: appViewModel.settings.selectedCharacter)
@@ -82,9 +79,9 @@ struct RoomDetailView: View {
 
                                 RoomStatsBar(room: room)
                             }
+                            .babciaScreenPadding()
+                            .babciaTabBarPadding()
                         }
-                        .babciaScreenPadding()
-                        .babciaTabBarPadding()
                     }
                 }
                 .toolbarBackground(.hidden, for: .navigationBar)
@@ -174,24 +171,18 @@ struct RoomDetailView: View {
 
 struct RoomHeaderFullBleed: View {
     let room: Room
-    @Binding var blendColor: Color
     @Environment(\.colorScheme) private var colorScheme
-    @State private var headerImage: UIImage?
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            if let headerImage {
-                Image(uiImage: headerImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image(room.character.portraitAssetName)
-                    .resizable()
-                    .scaledToFill()
-            }
+            Rectangle()
+                .fill(Color.clear)
 
             LinearGradient(
-                colors: [Color.clear, blendColor],
+                colors: [
+                    Color.clear,
+                    Color.black.opacity(colorScheme == .dark ? 0.6 : 0.4)
+                ],
                 startPoint: .center,
                 endPoint: .bottom
             )
@@ -210,69 +201,7 @@ struct RoomHeaderFullBleed: View {
             .padding(BabciaSpacing.lg)
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
-        .clipped()
-        .task(id: room.dreamVisionURL) {
-            await loadHeaderImage()
-        }
-    }
-
-    private func loadHeaderImage() async {
-        if let url = room.dreamVisionURL {
-            do {
-                let data: Data
-                if url.isFileURL {
-                    data = try Data(contentsOf: url)
-                } else {
-                    let (remoteData, _) = try await URLSession.shared.data(from: url)
-                    data = remoteData
-                }
-                if let image = UIImage(data: data) {
-                    headerImage = image
-                    updateBlendColor(from: image)
-                    return
-                }
-            } catch {
-                // fallback below
-            }
-        }
-
-        if let image = UIImage(named: room.character.portraitAssetName) {
-            headerImage = image
-            updateBlendColor(from: image)
-        } else {
-            blendColor = Color(hex: room.character.accentHex).opacity(0.2)
-        }
-    }
-
-    private func updateBlendColor(from image: UIImage) {
-        guard let sampled = image.sampledBottomColor() else {
-            blendColor = Color(hex: room.character.accentHex).opacity(0.2)
-            return
-        }
-        blendColor = adjustedBlendColor(from: sampled)
-    }
-
-    private func adjustedBlendColor(from color: UIColor) -> Color {
-        var hue: CGFloat = 0
-        var saturation: CGFloat = 0
-        var brightness: CGFloat = 0
-        var alpha: CGFloat = 0
-
-        if color.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha) {
-            let adjustedBrightness: CGFloat = colorScheme == .dark
-                ? max(0.12, brightness * 0.6)
-                : min(0.95, brightness * 1.1)
-            let adjusted = UIColor(
-                hue: hue,
-                saturation: max(0.2, saturation * 0.9),
-                brightness: adjustedBrightness,
-                alpha: 1
-            )
-            return Color(adjusted)
-        }
-
-        return Color(color)
+        .frame(height: BabciaSize.heroImage)
     }
 }
 
@@ -622,28 +551,5 @@ struct StatPill: View {
         .padding(.vertical, BabciaSpacing.xs)
         .babciaGlassCard(style: .subtle, cornerRadius: BabciaCorner.chip, shadow: .none, fullWidth: false)
         .frame(maxWidth: .infinity, minHeight: BabciaSize.touchMin)
-    }
-}
-
-struct RoomBackground: View {
-    let room: Room
-    var body: some View {
-        ZStack {
-            if let url = room.dreamVisionURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        CharacterBackground(character: room.character)
-                    }
-                }
-            } else {
-                CharacterBackground(character: room.character)
-            }
-        }
-        .ignoresSafeArea()
     }
 }

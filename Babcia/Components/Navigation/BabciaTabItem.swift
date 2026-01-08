@@ -17,10 +17,6 @@ struct BabciaTabItem: View {
         .foregroundColor(isSelected ? .primary : .secondary)
         .babciaFullWidth()
         .padding(.vertical, BabciaSpacing.xs)
-        .background(
-            RoundedRectangle(cornerRadius: BabciaCorner.card)
-                .fill(isSelected ? Color.white.opacity(BabciaOpacity.light) : Color.clear)
-        )
         .accessibilityLabel(tab.title)
         .accessibilityValue(Text(isSelected ? "Selected" : "Not selected"))
     }

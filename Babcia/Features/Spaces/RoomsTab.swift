@@ -152,7 +152,6 @@ struct RoomRow: View {
     let room: Room
 
     var body: some View {
-        let accent = Color(hex: room.character.accentHex)
         HStack(spacing: BabciaSpacing.md) {
             ZStack {
                 if let url = room.dreamVisionURL {
@@ -197,18 +196,6 @@ struct RoomRow: View {
                 .foregroundColor(.secondary)
         }
         .padding(BabciaSpacing.sm)
-        .background(
-            LinearGradient(
-                colors: [accent.opacity(0.18), Color(.secondarySystemBackground)],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
-        .cornerRadius(BabciaCorner.card)
-        .overlay(
-            RoundedRectangle(cornerRadius: BabciaCorner.card)
-                .stroke(accent.opacity(0.4), lineWidth: 1)
-        )
         .babciaFullWidthLeading()
     }
 }

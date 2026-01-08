@@ -83,9 +83,12 @@ private struct BabciaGlassCardModifier: ViewModifier {
             : AnyView(content)
         if #available(iOS 26.0, *) {
             let resolvedVariant: BabciaGlassVariant = reduceTransparency ? .identity : variant
+            let glassLayer: AnyView = interactive
+                ? AnyView(shape.glassEffect(resolvedVariant.glass.interactive(), in: shape))
+                : AnyView(shape.glassEffect(resolvedVariant.glass, in: shape))
             return AnyView(
                 sizedContent
-                    .glassEffect(interactive ? resolvedVariant.glass.interactive() : resolvedVariant.glass, in: shape)
+                    .background(glassLayer)
                     .clipShape(shape)
                     .overlay(shape.stroke(Color.white.opacity(style.strokeOpacity), lineWidth: 1))
                     .babciaShadow(shadow)
