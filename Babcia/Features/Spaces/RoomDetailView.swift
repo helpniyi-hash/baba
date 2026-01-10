@@ -94,7 +94,7 @@ struct RoomDetailView: View {
                         Button {
                             showingCameraMenu = true
                         } label: {
-                            Image(systemName: "camera")
+                            Image(systemName: BabciaIcon.camera.systemName)
                         }
                         .accessibilityLabel("Room camera options")
                     }
@@ -191,7 +191,7 @@ struct RoomModeSummaryCard: View {
             Image(room.character.headshotAssetName)
                 .resizable()
                 .scaledToFill()
-                .frame(width: 40, height: 40)
+                .frame(width: BabciaSize.avatarMd, height: BabciaSize.avatarMd)
                 .clipShape(Circle())
                 .overlay(
                     Circle()
@@ -326,7 +326,7 @@ struct TaskRowGlass: View {
                 guard !isLocked else { return }
                 onToggle(!task.isCompleted)
             }) {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
+                Image(systemName: task.isCompleted ? BabciaIcon.taskComplete.systemName : BabciaIcon.taskPending.systemName)
                     .foregroundColor(task.isCompleted ? .green : .secondary)
                     .contentTransition(.symbolEffect(.replace))
             }
