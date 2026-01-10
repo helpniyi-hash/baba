@@ -12,6 +12,7 @@
 		0BD156B22E7A92F400F45C76 /* DataLayer in Frameworks */ = {isa = PBXBuildFile; productRef = 0BD156B12E7A92F400F45C76 /* DataLayer */; };
 		0BF4A4522E7BBA7000A37899 /* DI in Frameworks */ = {isa = PBXBuildFile; productRef = 0BF4A4512E7BBA7000A37899 /* DI */; };
 		0BF4A4552E7BBA7C00A37899 /* Presentation in Frameworks */ = {isa = PBXBuildFile; productRef = 0BF4A4542E7BBA7C00A37899 /* Presentation */; };
+		0BF4A4562E7BBA8000A37899 /* LiquidGlassKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0BF4A4572E7BBA8000A37899 /* LiquidGlassKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +66,7 @@
 				0BD156B22E7A92F400F45C76 /* DataLayer in Frameworks */,
 				0BF4A4522E7BBA7000A37899 /* DI in Frameworks */,
 				0BF4A4552E7BBA7C00A37899 /* Presentation in Frameworks */,
+				0BF4A4562E7BBA8000A37899 /* LiquidGlassKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,6 +132,7 @@
 				0BD156B12E7A92F400F45C76 /* DataLayer */,
 				0BF4A4512E7BBA7000A37899 /* DI */,
 				0BF4A4542E7BBA7C00A37899 /* Presentation */,
+				0BF4A4572E7BBA8000A37899 /* LiquidGlassKit */,
 			);
 			productName = Babcia;
 			productReference = 0B68EA572E7A846F0029E929 /* Babcia.app */;
@@ -219,6 +222,7 @@
 				0BD156B02E7A92F400F45C76 /* XCLocalSwiftPackageReference "Babcia/Packages/DataLayer" */,
 				0BF4A4502E7BBA7000A37899 /* XCLocalSwiftPackageReference "Babcia/Packages/DI" */,
 				0BF4A4532E7BBA7C00A37899 /* XCLocalSwiftPackageReference "Babcia/Packages/Presentation" */,
+				0BF4A4582E7BBA9000A37899 /* XCRemoteSwiftPackageReference "LiquidGlassKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0B68EA582E7A846F0029E929 /* Products */;
@@ -679,6 +683,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		0BF4A4582E7BBA9000A37899 /* XCRemoteSwiftPackageReference "LiquidGlassKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mason-blumling/LiquidGlassKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		0BD156AB2E7A92DA00F45C76 /* Common */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -699,6 +714,11 @@
 		0BF4A4542E7BBA7C00A37899 /* Presentation */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Presentation;
+		};
+		0BF4A4572E7BBA8000A37899 /* LiquidGlassKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0BF4A4582E7BBA9000A37899 /* XCRemoteSwiftPackageReference "LiquidGlassKit" */;
+			productName = LiquidGlassKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
