@@ -29,10 +29,12 @@ private struct FlexibleHeaderScrollViewModifier: ViewModifier {
     @State private var scrollOffset: CGFloat = 0
     
     func body(content: Content) -> some View {
-        // Note: onScrollGeometryChange requires iOS 26 which is not yet available
-        // This modifier provides the environment key for future implementation
-        // The stretchy effect will only fully work when iOS 26 APIs are available
         content
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y
+            } action: { oldValue, newValue in
+                scrollOffset = newValue
+            }
             .environment(\.flexibleHeaderScrollOffset, scrollOffset)
     }
 }
