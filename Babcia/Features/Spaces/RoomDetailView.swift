@@ -173,14 +173,10 @@ struct RoomDetailView: View {
     }
     
     private func heroImage(for room: Room) -> Image {
-        // Try to load dream vision or fall back to character portrait
-        if let _ = room.dreamVisionURL {
-            // Note: For template we need to use Image, not AsyncImage
-            // So we'll use character portrait for now
-            return Image(room.character.portraitAssetName)
-        } else {
-            return Image(room.character.portraitAssetName)
-        }
+        // Note: BabciaPageTemplate requires an Image, not AsyncImage
+        // Dream vision URLs will need a different implementation pattern in future
+        // For now, always use character portrait for consistent template behavior
+        return Image(room.character.portraitAssetName)
     }
 }
 
@@ -353,6 +349,7 @@ struct TaskRowGlass: View {
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, BabciaConstants.Spacing.xxs)
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: task.isCompleted)
     }
 }
 
