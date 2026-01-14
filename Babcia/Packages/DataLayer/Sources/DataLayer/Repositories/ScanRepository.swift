@@ -1,10 +1,12 @@
+import Core
+import DreamRoomEngine
 import Foundation
 import UIKit
-import Core
 
 public final class ScanRepository: ScanRepositoryProtocol {
     private let gemini = GeminiService.shared
     private let homeAssistant = HomeAssistantService.shared
+    private let dreamRoomEngine = DreamRoomEngine()
 
     public init() {}
 
@@ -21,7 +23,21 @@ public final class ScanRepository: ScanRepositoryProtocol {
         character: BabciaCharacter,
         apiKey: String
     ) async throws -> UIImage {
-        try await gemini.generateDreamVision(roomImage: image, character: character, apiKey: apiKey)
+        guard let imageData = image.jpegData(compressionQuality: 0.9) else {
+            throw GeminiError.imageProcessingFailed
+        }
+
+        let result = try await dreamRoomEngine.generate(
+            beforePhotoData: imageData,
+            context: DreamRoomContext(characterPrompt: character.dreamVisionPrompt),
+            config: DreamRoomConfig(apiKey: apiKey)
+        )
+
+        guard let dreamImage = UIImage(data: result.heroImageData) else {
+            throw GeminiError.imageProcessingFailed
+        }
+
+        return dreamImage
     }
 
     public func verifyRoom(
