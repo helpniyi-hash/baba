@@ -16,14 +16,16 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../Common"),
-        .package(path: "../Core")
+        .package(path: "../Core"),
+        .package(path: "../DreamRoomEngine")
     ],
     targets: [
         .target(
             name: "DataLayer",
             dependencies: [
                 .product(name: "Common", package: "Common"),
-                .product(name: "Core", package: "Core")
+                .product(name: "Core", package: "Core"),
+                .product(name: "DreamRoomEngine", package: "DreamRoomEngine")
             ]
         ),
         .testTarget(
