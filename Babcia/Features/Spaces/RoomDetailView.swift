@@ -1,7 +1,6 @@
 import SwiftUI
-import Presentation
-import Common
 import Core
+import Presentation
 import UIKit
 
 enum RoomImageAction {
@@ -17,7 +16,6 @@ struct ManualToggleIntent: Identifiable {
 
 struct RoomDetailView: View {
     @EnvironmentObject private var appViewModel: AppViewModel
-    @Environment(\.colorScheme) private var colorScheme
     let roomID: UUID
 
     @State private var showingCameraMenu = false
@@ -35,284 +33,368 @@ struct RoomDetailView: View {
     var body: some View {
         Group {
             if let room {
-                BabciaPageTemplate(heroImage: heroImage(for: room)) {
-                    VStack(alignment: .leading, spacing: BabciaConstants.Spacing.sectionGap) {
-                        // Room header with title
-                        VStack(alignment: .leading, spacing: BabciaConstants.Spacing.xs) {
-                            Text(room.name)
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                            
-                            Text(room.character.displayName)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        // Mode summary card
-                        RoomModeSummaryCard(room: room, modeCharacter: appViewModel.settings.selectedCharacter)
-
-                        if let advice = room.babciaAdvice, !advice.isEmpty {
-                            AdviceGlassCard(message: advice)
-                        }
-
-                        if room.tasks.isEmpty {
-                            EmptyTasksGlassCard()
-                        } else {
-                            VerificationSummaryGlassCard(room: room)
-
-                            TaskListGlassCard(room: room) { task, markComplete in
-                                if markComplete {
-                                    pendingManualToggle = ManualToggleIntent(taskID: task.id, markComplete: true)
-                                } else {
-                                    appViewModel.setManualTask(roomID: room.id, taskID: task.id, isCompleted: false)
-                                }
-                            }
-
-                            if let lastVerified = room.lastVerifiedAt {
-                                Text("Last verified: \(lastVerified.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            if room.manualOverrideAvailable {
-                                ManualOverrideGlassCard(
-                                    isTrusted: appViewModel.settings.selectedCharacter == .wellnessX,
-                                    onOverride: { showingManualOverrideConfirm = true }
-                                )
-                            }
-                        }
-
-                        AutoScanGlassCard(room: room)
-
-                        RoomStatsBar(room: room)
-                    }
-                }
-                .toolbarBackground(.hidden, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showingCameraMenu = true
-                        } label: {
-                            Image(systemName: BabciaIcon.camera.systemName)
-                        }
-                        .accessibilityLabel("Room camera options")
-                    }
-                }
-                .confirmationDialog("Room Camera", isPresented: $showingCameraMenu) {
-                    Button("Verify Room") {
-                        imagePickerAction = .verify
-                        showingSourceMenu = true
-                    }
-                    Button("Change Baseline") {
-                        imagePickerAction = .scan
-                        showingSourceMenu = true
-                    }
-                }
-                .confirmationDialog("Select Source", isPresented: $showingSourceMenu) {
-                    if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        Button("Take Photo") {
-                            imagePickerSource = .camera
-                            showingImagePicker = true
-                        }
-                    }
-                    Button("Choose Photo") {
-                        imagePickerSource = .photoLibrary
-                        showingImagePicker = true
-                    }
-                    if room.imageSource == .homeAssistant {
-                        Button("Home Assistant Snapshot") {
-                            if imagePickerAction == .scan {
-                                appViewModel.scanHomeAssistant(roomID: room.id)
-                            } else {
-                                appViewModel.verifyHomeAssistant(roomID: room.id)
-                            }
-                        }
-                    }
-                }
-                .sheet(isPresented: $showingImagePicker) {
-                    ImagePicker(sourceType: imagePickerSource) { image in
-                        let source: CaptureSource = imagePickerSource == .camera ? .camera : .manual
-                        switch imagePickerAction {
-                        case .scan:
-                            appViewModel.scanRoom(roomID: room.id, image: image, captureSource: source)
-                        case .verify:
-                            appViewModel.verifyRoom(roomID: room.id, image: image, captureSource: source)
-                        }
-                    }
-                }
-                .alert(item: $pendingManualToggle) { intent in
-                    let messageText = appViewModel.settings.selectedCharacter == .wellnessX
-                        ? "Trusted mode grants XP immediately for manual checks."
-                        : "Manual checks do not grant XP until Babcia verifies."
-                    return Alert(
-                        title: Text("Mark as done?"),
-                        message: Text(messageText),
-                        primaryButton: .default(Text("Mark")) {
-                            appViewModel.setManualTask(roomID: room.id, taskID: intent.taskID, isCompleted: intent.markComplete)
-                        },
-                        secondaryButton: .cancel()
-                    )
-                }
-                .alert("Manual override", isPresented: $showingManualOverrideConfirm) {
-                    Button("Cancel", role: .cancel) {}
-                    Button("Override", role: .destructive) {
-                        appViewModel.manualOverride(roomID: room.id)
-                    }
-                } message: {
-                    let messageText = appViewModel.settings.selectedCharacter == .wellnessX
-                        ? "Trusted mode grants XP immediately for manual completions."
-                        : "Babcia prefers a real scan. Manual override logs self-declared completion and grants no XP."
-                    Text(messageText)
-                }
+                roomView(room)
             } else {
                 Text("Room not found")
-                    .font(.title)
+                    .babciaTextStyle(.title1)
             }
         }
     }
-    
-    private func heroImage(for room: Room) -> Image {
-        // Note: BabciaPageTemplate requires an Image, not AsyncImage
-        // Dream vision URLs will need a different implementation pattern in future
-        // For now, always use character portrait for consistent template behavior
-        return Image(room.character.portraitAssetName)
+
+    @ViewBuilder
+    private func roomView(_ room: Room) -> some View {
+        ScrollView {
+            roomContent(room)
+        }
+        .safeAreaInset(edge: .bottom) {
+            bottomActions
+        }
+        .babciaScreen()
+        .navigationTitle("Room")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingCameraMenu = true
+                } label: {
+                    Image(systemName: "camera")
+                }
+                .accessibilityLabel("Room camera options")
+            }
+        }
+        .confirmationDialog("Room Camera", isPresented: $showingCameraMenu) {
+            Button("Verify Room") {
+                imagePickerAction = .verify
+                showingSourceMenu = true
+            }
+            Button("Change Baseline") {
+                imagePickerAction = .scan
+                showingSourceMenu = true
+            }
+        }
+        .confirmationDialog("Select Source", isPresented: $showingSourceMenu) {
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button("Take Photo") {
+                    imagePickerSource = .camera
+                    showingImagePicker = true
+                }
+            }
+            Button("Choose Photo") {
+                imagePickerSource = .photoLibrary
+                showingImagePicker = true
+            }
+            if room.imageSource == .homeAssistant {
+                Button("Home Assistant Snapshot") {
+                    if imagePickerAction == .scan {
+                        appViewModel.scanHomeAssistant(roomID: room.id)
+                    } else {
+                        appViewModel.verifyHomeAssistant(roomID: room.id)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(sourceType: imagePickerSource) { image in
+                let source: CaptureSource = imagePickerSource == .camera ? .camera : .manual
+                switch imagePickerAction {
+                case .scan:
+                    appViewModel.scanRoom(roomID: room.id, image: image, captureSource: source)
+                case .verify:
+                    appViewModel.verifyRoom(roomID: room.id, image: image, captureSource: source)
+                }
+            }
+        }
+        .alert(item: $pendingManualToggle) { intent in
+            let messageText = appViewModel.settings.selectedCharacter == .wellnessX
+                ? "Trusted mode grants XP immediately for manual checks."
+                : "Manual checks do not grant XP until Babcia verifies."
+            return Alert(
+                title: Text("Mark as done?"),
+                message: Text(messageText),
+                primaryButton: .default(Text("Mark")) {
+                    appViewModel.setManualTask(roomID: room.id, taskID: intent.taskID, isCompleted: intent.markComplete)
+                },
+                secondaryButton: .cancel()
+            )
+        }
+        .alert("Manual override", isPresented: $showingManualOverrideConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Override", role: .destructive) {
+                appViewModel.manualOverride(roomID: room.id)
+            }
+        } message: {
+            let messageText = appViewModel.settings.selectedCharacter == .wellnessX
+                ? "Trusted mode grants XP immediately for manual completions."
+                : "Babcia prefers a real scan. Manual override logs self-declared completion and grants no XP."
+            Text(messageText)
+        }
+    }
+
+    private func roomContent(_ room: Room) -> some View {
+        BabciaVStack(spacing: .medium) {
+            headerSection(room)
+            titleSection(room)
+            StatusRow(room: room)
+            RoomModeSummaryCard(
+                room: room,
+                modeCharacter: appViewModel.settings.selectedCharacter
+            )
+            adviceSection(room)
+            tasksSection(room)
+            AutoScanCard(room: room)
+                .babciaSectionStyle(title: "Auto Scan")
+            RoomStatsRow(room: room)
+                .babciaSectionStyle(title: "Room Stats")
+        }
+        .babciaPadding()
+    }
+
+    private func headerSection(_ room: Room) -> some View {
+        BabciaCoverFlow(height: 250, data: headerImages(for: room), id: \.id) { image in
+            RoomHeaderCard(image: image)
+        }
+    }
+
+    private func titleSection(_ room: Room) -> some View {
+        BabciaVStack(spacing: .zero) {
+            Text(room.name)
+                .babciaTextStyle(.title2)
+            Text(room.character.displayName)
+                .babciaTextStyle(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func adviceSection(_ room: Room) -> some View {
+        if let advice = room.babciaAdvice, !advice.isEmpty {
+            AdviceCard(message: advice)
+                .babciaSectionStyle(title: "Advice")
+        }
+    }
+
+    @ViewBuilder
+    private func tasksSection(_ room: Room) -> some View {
+        if room.tasks.isEmpty {
+            EmptyTasksCard()
+                .babciaSectionStyle(title: "Tasks")
+        } else {
+            VerificationSummaryCard(room: room)
+                .babciaSectionStyle(title: "Verification")
+
+            TaskListCard(room: room) { task, markComplete in
+                if markComplete {
+                    pendingManualToggle = ManualToggleIntent(taskID: task.id, markComplete: true)
+                } else {
+                    appViewModel.setManualTask(roomID: room.id, taskID: task.id, isCompleted: false)
+                }
+            }
+            .babciaSectionStyle(title: "Tasks")
+
+            if let lastVerified = room.lastVerifiedAt {
+                Text("Last verified: \(lastVerified.formatted(date: .abbreviated, time: .shortened))")
+                    .babciaTextStyle(.caption1)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if room.manualOverrideAvailable {
+                ManualOverrideCard(
+                    isTrusted: appViewModel.settings.selectedCharacter == .wellnessX,
+                    onOverride: { showingManualOverrideConfirm = true }
+                )
+                .babciaSectionStyle(title: "Manual Override")
+            }
+        }
+    }
+
+    private var bottomActions: some View {
+        BabciaBottomContainer {
+            BabciaButton(title: "Verify room", leftIcon: "checkmark.shield", style: .secondary) {
+                imagePickerAction = .verify
+                showingSourceMenu = true
+            }
+            BabciaButton(title: "Scan room", leftIcon: "camera") {
+                imagePickerAction = .scan
+                showingSourceMenu = true
+            }
+        }
+    }
+
+    private func headerImages(for room: Room) -> [RoomHeaderImage] {
+        if let url = room.dreamVisionURL {
+            return [RoomHeaderImage(url: url)]
+        }
+        return [RoomHeaderImage(assetName: room.character.portraitAssetName)]
     }
 }
 
-// MARK: - Glass Card Components
+struct RoomHeaderImage: Identifiable, Hashable {
+    let id: String
+    let url: URL?
+    let assetName: String?
+
+    init(url: URL) {
+        self.id = url.absoluteString
+        self.url = url
+        self.assetName = nil
+    }
+
+    init(assetName: String) {
+        self.id = assetName
+        self.url = nil
+        self.assetName = assetName
+    }
+}
+
+struct RoomHeaderCard: View {
+    let image: RoomHeaderImage
+
+    var body: some View {
+        ZStack {
+            if let url = image.url {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        Color.gray.opacity(0.2)
+                    }
+                }
+            } else if let assetName = image.assetName {
+                Image(assetName)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Color.gray.opacity(0.2)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .clipped()
+        .babciaCornerRadius()
+    }
+}
+
+struct StatusRow: View {
+    let room: Room
+
+    var body: some View {
+        BabciaHStack(spacing: .regular) {
+            StatusPill(text: "Verified \(room.tasks.filter { $0.verificationState == .verified }.count)", color: .green)
+            StatusPill(text: "Manual \(room.tasks.filter { $0.verificationState == .manual }.count)", color: .orange)
+            StatusPill(text: "Pending \(room.pendingTaskCount)", color: .gray)
+        }
+    }
+}
+
+struct StatusPill: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        Text(text)
+            .babciaTextStyle(.caption1, color)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(color.opacity(0.15))
+            .babciaCornerRadius()
+    }
+}
 
 struct RoomModeSummaryCard: View {
     let room: Room
     let modeCharacter: BabciaCharacter
 
     var body: some View {
-        HStack(spacing: BabciaConstants.Spacing.md) {
+        BabciaHStack(spacing: .regular) {
             Image(room.character.headshotAssetName)
                 .resizable()
                 .scaledToFill()
-                .frame(width: BabciaSize.avatarMd, height: BabciaSize.avatarMd)
+                .frame(width: 50, height: 50)
                 .clipShape(Circle())
                 .overlay(
                     Circle()
                         .stroke(Color(hex: room.character.accentHex), lineWidth: 2)
                 )
 
-            VStack(alignment: .leading, spacing: BabciaConstants.Spacing.xxs) {
+            BabciaVStack(alignment: .leading, spacing: .zero) {
                 Text("Mode: \(modeCharacter.verificationModeName)")
-                    .font(.headline)
+                    .babciaTextStyle(.headline)
                 Text(modeCharacter.verificationModeDescription)
-                    .font(.caption)
+                    .babciaTextStyle(.caption1)
                     .foregroundColor(.secondary)
                 Text("Room Babcia: \(room.character.displayName)")
-                    .font(.caption)
+                    .babciaTextStyle(.caption1)
                     .foregroundColor(.secondary)
             }
 
             Spacer()
         }
-        .padding(BabciaConstants.Spacing.cardPadding)
-        .glassEffectFallback()
-        .clipShape(RoundedRectangle(cornerRadius: BabciaConstants.Corner.card, style: .continuous))
+        .babciaCardStyle()
     }
 }
 
-struct VerificationSummaryGlassCard: View {
+struct VerificationSummaryCard: View {
     let room: Room
 
-    private var verifiedCount: Int {
-        room.tasks.filter { $0.verificationState == .verified }.count
-    }
-
-    private var manualCount: Int {
-        room.tasks.filter { $0.verificationState == .manual }.count
-    }
-
-    private var pendingCount: Int {
-        room.pendingTaskCount
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: BabciaConstants.Spacing.sm) {
-            Text("Verification")
-                .font(.headline)
-
-            Text("Use the top camera button to verify or update the room baseline.")
-                .font(.caption)
+        BabciaVStack(alignment: .leading, spacing: .small) {
+            Text("Use the camera to verify or update the room baseline.")
+                .babciaTextStyle(.caption1)
                 .foregroundColor(.secondary)
 
-            HStack(spacing: BabciaConstants.Spacing.sm) {
-                LiquidGlassBadge("Verified: \(verifiedCount)")
-                    .tint(.green)
-                LiquidGlassBadge("Manual: \(manualCount)")
-                    .tint(.orange)
-                LiquidGlassBadge("Pending: \(pendingCount)")
-                    .tint(.secondary)
+            BabciaHStack(spacing: .small) {
+                StatusPill(text: "Verified \(room.tasks.filter { $0.verificationState == .verified }.count)", color: .green)
+                StatusPill(text: "Manual \(room.tasks.filter { $0.verificationState == .manual }.count)", color: .orange)
+                StatusPill(text: "Pending \(room.pendingTaskCount)", color: .gray)
             }
         }
-        .padding(BabciaConstants.Spacing.cardPadding)
-        .glassEffectFallback()
-        .clipShape(RoundedRectangle(cornerRadius: BabciaConstants.Corner.card, style: .continuous))
+        .babciaCardStyle()
     }
 }
 
-struct AdviceGlassCard: View {
+struct AdviceCard: View {
     let message: String
 
     var body: some View {
         Text(message)
-            .font(.body)
+            .babciaTextStyle(.body)
             .foregroundColor(.primary)
-            .padding(BabciaConstants.Spacing.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffectFallback()
-            .clipShape(RoundedRectangle(cornerRadius: BabciaConstants.Corner.card, style: .continuous))
+            .babciaCardStyle()
     }
 }
 
-struct EmptyTasksGlassCard: View {
+struct EmptyTasksCard: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: BabciaConstants.Spacing.sm) {
+        BabciaVStack(alignment: .leading, spacing: .small) {
             Text("No tasks yet")
-                .font(.headline)
+                .babciaTextStyle(.headline)
 
-            Text("Use the top camera button to scan this room and generate tasks.")
-                .font(.caption)
+            Text("Use the camera to scan this room and generate tasks.")
+                .babciaTextStyle(.caption1)
                 .foregroundColor(.secondary)
         }
-        .padding(BabciaConstants.Spacing.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffectFallback()
-        .clipShape(RoundedRectangle(cornerRadius: BabciaConstants.Corner.card, style: .continuous))
+        .babciaCardStyle()
     }
 }
 
-struct TaskListGlassCard: View {
+struct TaskListCard: View {
     let room: Room
     let onToggle: (CleaningTask, Bool) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: BabciaConstants.Spacing.sm) {
-            Text("Tasks")
-                .font(.headline)
-
-            VStack(spacing: BabciaConstants.Spacing.xs) {
-                ForEach(room.tasks) { task in
-                    TaskRowGlass(
-                        task: task,
-                        onToggle: { onToggle(task, $0) }
-                    )
-                }
+        BabciaVStack(spacing: .small) {
+            ForEach(room.tasks) { task in
+                TaskRow(task: task, onToggle: { onToggle(task, $0) })
             }
         }
-        .padding(BabciaConstants.Spacing.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffectFallback()
-        .clipShape(RoundedRectangle(cornerRadius: BabciaConstants.Corner.card, style: .continuous))
     }
 }
 
-struct TaskRowGlass: View {
+struct TaskRow: View {
     let task: CleaningTask
     let onToggle: (Bool) -> Void
 
@@ -321,12 +403,12 @@ struct TaskRowGlass: View {
     }
 
     var body: some View {
-        HStack(spacing: BabciaConstants.Spacing.md) {
+        BabciaHStack(spacing: .medium) {
             Button(action: {
                 guard !isLocked else { return }
                 onToggle(!task.isCompleted)
             }) {
-                Image(systemName: task.isCompleted ? BabciaIcon.taskComplete.systemName : BabciaIcon.taskPending.systemName)
+                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .foregroundColor(task.isCompleted ? .green : .secondary)
                     .contentTransition(.symbolEffect(.replace))
             }
@@ -335,7 +417,7 @@ struct TaskRowGlass: View {
             .accessibilityLabel(task.isCompleted ? "Mark task incomplete" : "Mark task complete")
 
             Text(task.title)
-                .font(.body)
+                .babciaTextStyle(.body)
                 .foregroundColor(.primary)
                 .strikethrough(task.isCompleted, color: .secondary)
 
@@ -345,10 +427,12 @@ struct TaskRowGlass: View {
             TaskStatusBadge(state: task.resolvedVerificationState, labelOverride: override)
 
             Text("+\(task.xpReward)")
-                .font(.caption)
+                .babciaTextStyle(.caption1)
                 .foregroundColor(.secondary)
         }
-        .padding(.vertical, BabciaConstants.Spacing.xxs)
+        .babciaPadding(.regular)
+        .babciaSecondaryBackground()
+        .babciaCornerRadius()
         .animation(.spring(response: 0.3, dampingFraction: 0.85), value: task.isCompleted)
     }
 }
@@ -381,42 +465,39 @@ struct TaskStatusBadge: View {
         case .manual:
             return .orange
         case .pending:
-            return .secondary
+            return .gray
         }
     }
 
     var body: some View {
-        LiquidGlassBadge(label)
-            .tint(badgeColor)
+        StatusPill(text: label, color: badgeColor)
     }
 }
 
-struct ManualOverrideGlassCard: View {
+struct ManualOverrideCard: View {
     let isTrusted: Bool
     let onOverride: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: BabciaConstants.Spacing.sm) {
+        BabciaVStack(alignment: .leading, spacing: .small) {
             Text("Babcia is unsure")
-                .font(.headline)
+                .babciaTextStyle(.headline)
 
             Text(isTrusted
                  ? "Trusted mode allows manual completion with XP."
-                 : "Try a clearer scan using the top camera button, or manually override if you must. This is logged as self-declared.")
-                .font(.caption)
+                 : "Try a clearer scan using the camera, or manually override if you must. This is logged as self-declared.")
+                .babciaTextStyle(.caption1)
                 .foregroundColor(.secondary)
 
-            LiquidGlassButton("Manual override", action: onOverride)
-                .accessibilityLabel("Manual override")
+            BabciaButton(title: "Manual override", style: .secondary) {
+                onOverride()
+            }
         }
-        .padding(BabciaConstants.Spacing.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffectFallback()
-        .clipShape(RoundedRectangle(cornerRadius: BabciaConstants.Corner.card, style: .continuous))
+        .babciaCardStyle()
     }
 }
 
-struct AutoScanGlassCard: View {
+struct AutoScanCard: View {
     @EnvironmentObject private var appViewModel: AppViewModel
     let room: Room
 
@@ -425,10 +506,7 @@ struct AutoScanGlassCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: BabciaConstants.Spacing.md) {
-            Text("Auto Scan")
-                .font(.headline)
-
+        BabciaVStack(alignment: .leading, spacing: .medium) {
             Toggle("Enable auto scan", isOn: Binding(
                 get: { schedule.enabled },
                 set: { appViewModel.updateRoomSchedule(roomID: room.id, enabled: $0, cadence: schedule.cadence) }
@@ -447,22 +525,19 @@ struct AutoScanGlassCard: View {
 
             if let nextRun = schedule.nextRun {
                 Text("Next scan: \(nextRun.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.caption)
+                    .babciaTextStyle(.caption1)
                     .foregroundColor(.secondary)
             } else {
                 Text("Next scan will be scheduled after enabling.")
-                    .font(.caption)
+                    .babciaTextStyle(.caption1)
                     .foregroundColor(.secondary)
             }
 
             Text(scheduleNote)
-                .font(.caption)
+                .babciaTextStyle(.caption1)
                 .foregroundColor(.secondary)
         }
-        .padding(BabciaConstants.Spacing.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffectFallback()
-        .clipShape(RoundedRectangle(cornerRadius: BabciaConstants.Corner.card, style: .continuous))
+        .babciaCardStyle()
     }
 
     private var scheduleNote: String {
@@ -473,35 +548,34 @@ struct AutoScanGlassCard: View {
     }
 }
 
-struct RoomStatsBar: View {
+struct RoomStatsRow: View {
     let room: Room
 
     var body: some View {
-        HStack(spacing: BabciaConstants.Spacing.md) {
-            StatPillGlass(title: "XP", value: "\(room.totalXP)")
-            StatPillGlass(title: "Streak", value: "\(room.streak)d")
-            StatPillGlass(title: "Done", value: "\(room.completedTaskCount)")
+        BabciaHStack(spacing: .medium) {
+            StatPill(title: "XP", value: "\(room.totalXP)")
+            StatPill(title: "Streak", value: "\(room.streak)d")
+            StatPill(title: "Done", value: "\(room.completedTaskCount)")
         }
     }
 }
 
-struct StatPillGlass: View {
+struct StatPill: View {
     let title: String
     let value: String
 
     var body: some View {
-        VStack(spacing: BabciaConstants.Spacing.xxs) {
+        BabciaVStack(spacing: .zero) {
             Text(value)
-                .font(.headline)
+                .babciaTextStyle(.headline)
                 .foregroundColor(.primary)
             Text(title)
-                .font(.caption)
+                .babciaTextStyle(.caption1)
                 .foregroundColor(.secondary)
         }
-        .padding(.horizontal, BabciaConstants.Spacing.sm)
-        .padding(.vertical, BabciaConstants.Spacing.xs)
-        .frame(maxWidth: .infinity, minHeight: BabciaConstants.Size.minTouchTarget)
-        .glassEffectFallback()
-        .clipShape(RoundedRectangle(cornerRadius: BabciaConstants.Corner.badge, style: .continuous))
+        .babciaPadding(.vertical, .small)
+        .frame(maxWidth: .infinity)
+        .babciaSecondaryBackground()
+        .babciaCornerRadius()
     }
 }

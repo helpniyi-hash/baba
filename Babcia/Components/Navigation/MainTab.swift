@@ -13,7 +13,7 @@ enum MainTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .home: return "Home"
-        case .spaces: return "Spaces"
+        case .spaces: return "Areas"
         case .capture: return "Capture"
         case .gallery: return "Gallery"
         case .settings: return "Settings"

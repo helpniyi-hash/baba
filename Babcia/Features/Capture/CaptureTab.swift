@@ -1,7 +1,6 @@
 import SwiftUI
-import Presentation
-import Common
 import Core
+import Presentation
 import UIKit
 
 struct CaptureTab: View {
@@ -12,6 +11,10 @@ struct CaptureTab: View {
     @State private var showingImagePicker = false
     @State private var imagePickerSource: UIImagePickerController.SourceType = .photoLibrary
 
+    private var rooms: [Room] {
+        appViewModel.rooms
+    }
+
     private var selectedRoom: Room? {
         if let selectedRoomID {
             return appViewModel.rooms.first { $0.id == selectedRoomID }
@@ -21,53 +24,36 @@ struct CaptureTab: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .subtle))
-
-                ScrollView {
-                    VStack(spacing: BabciaSpacing.sectionGap) {
-                        if let room = selectedRoom {
-                            RoomPreviewCard(room: room)
-
-                            Button {
-                                showingScanOptions = true
-                            } label: {
-                                HStack(spacing: BabciaSpacing.sm) {
-                                    Image(systemName: BabciaIcon.capture.systemName)
-                                    Text("Scan Now")
-                                        .font(.babcia(.headingSm))
-                                }
-                                .foregroundColor(.white)
-                                .babciaFullWidth()
-                                .padding(.vertical, BabciaSpacing.md)
-                            }
-                            .tint(.black)
-                            .babciaGlassButtonProminent()
-                            .controlSize(.large)
-                            .accessibilityLabel("Scan now")
-                        } else {
-                            EmptyStateCard(
-                                title: "No rooms yet",
-                                message: "Create a room to start scanning."
-                            ) {
-                                showingCreateRoom = true
-                            }
+            BabciaVStack {
+                Text("Capture")
+                    .babciaPadding()
+                    .frame(maxWidth: .infinity)
+                    .overlay(alignment: .trailing) {
+                        Button {
+                            showingCreateRoom = true
+                        } label: {
+                            Image(systemName: "plus.circle")
+                                .font(.title2)
                         }
-
-                        if !appViewModel.rooms.isEmpty {
-                            RoomPickerCard(
-                                rooms: appViewModel.rooms,
-                                selectedRoomID: Binding(
-                                    get: { selectedRoom?.id },
-                                    set: { selectedRoomID = $0 }
-                                )
-                            )
-                        }
+                        .babciaPadding()
+                        .accessibilityLabel("Create area")
                     }
-                    .babciaScreenPadding()
+
+                if rooms.isEmpty {
+                    EmptyCaptureState { showingCreateRoom = true }
+                } else {
+                    BabciaCoverFlow(height: .fillUpTheSpace, data: rooms, id: \.id) { room in
+                        Button {
+                            selectedRoomID = room.id
+                            showingScanOptions = true
+                        } label: {
+                            CaptureRoomCard(room: room)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
-            .navigationTitle("Capture")
+            .babciaScreen()
             .sheet(isPresented: $showingCreateRoom) {
                 CreateRoomSheet()
             }
@@ -98,81 +84,64 @@ struct CaptureTab: View {
                     }
                 }
             }
-            .onAppear {
-                if selectedRoomID == nil {
-                    selectedRoomID = appViewModel.rooms.first?.id
-                }
-            }
         }
     }
 }
 
-struct RoomPreviewCard: View {
+struct CaptureRoomCard: View {
     let room: Room
 
     var body: some View {
-        let accent = Color(hex: room.character.accentHex)
-        VStack(alignment: .leading, spacing: BabciaSpacing.md) {
-            Text(room.name)
-                .font(.babcia(.headingSm))
-
-            ZStack {
-                if let url = room.dreamVisionURL {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFill()
-                        default:
-                            Image(room.character.headshotAssetName)
-                                .resizable()
-                                .scaledToFit()
-                                .padding(BabciaSpacing.xxl)
-                        }
+        ZStack(alignment: .bottomLeading) {
+            if let url = room.dreamVisionURL {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    default:
+                        Image(room.character.portraitAssetName)
+                            .resizable()
+                            .scaledToFill()
                     }
-                } else {
-                    Image(room.character.headshotAssetName)
-                        .resizable()
-                        .scaledToFit()
-                        .padding(BabciaSpacing.xxl)
                 }
+            } else {
+                Image(room.character.portraitAssetName)
+                    .resizable()
+                    .scaledToFill()
             }
-            .frame(height: BabciaSize.cardImageMd)
-            .background(Color(.secondarySystemBackground))
-            .clipped()
-            .cornerRadius(BabciaCorner.cardImage)
-            .overlay(
-                RoundedRectangle(cornerRadius: BabciaCorner.cardImage)
-                    .stroke(accent.opacity(0.4), lineWidth: 1)
-            )
 
-            Text("Character: \(room.character.displayName)")
-                .font(.babcia(.caption))
-                .foregroundColor(.secondary)
+            Text(room.name)
+                .babciaTextStyle(.headline)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial)
+                .babciaCornerRadius()
+                .padding(16)
         }
-        .babciaCardPadding()
-        .babciaGlassCard()
-        .babciaFullWidthLeading()
+        .frame(maxWidth: .infinity)
+        .clipped()
+        .babciaCornerRadius()
     }
 }
 
-struct RoomPickerCard: View {
-    let rooms: [Room]
-    @Binding var selectedRoomID: UUID?
+struct EmptyCaptureState: View {
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: BabciaSpacing.md) {
-            Text("Select Room")
-                .font(.babcia(.headingSm))
+        BabciaVStack(spacing: .small) {
+            Text("No areas yet")
+                .babciaTextStyle(.headline)
 
-            Picker("Room", selection: $selectedRoomID) {
-                ForEach(rooms) { room in
-                    Text(room.name).tag(Optional(room.id))
-                }
+            Text("Create an area to start scanning.")
+                .babciaTextStyle(.caption1)
+                .foregroundColor(.secondary)
+
+            BabciaButton(title: "Create area", leftIcon: "plus") {
+                action()
             }
-            .pickerStyle(.menu)
         }
-        .babciaCardPadding()
-        .babciaGlassCard()
-        .babciaFullWidthLeading()
+        .babciaPadding()
     }
 }

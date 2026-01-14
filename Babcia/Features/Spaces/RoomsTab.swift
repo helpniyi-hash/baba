@@ -1,37 +1,41 @@
 import SwiftUI
-import Presentation
-import Common
 import Core
+import Presentation
 
-struct RoomsTab: View {
+struct AreasTab: View {
     @EnvironmentObject private var appViewModel: AppViewModel
     @State private var showingCreateRoom = false
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .subtle))
-
-                ScrollView {
-                    VStack(spacing: BabciaSpacing.sectionGap) {
-                        ProgressCard(totalXP: appViewModel.totalXP, level: appViewModel.level)
-
-                        DreamGallerySection(rooms: appViewModel.rooms)
-
-                        RoomsListCard(rooms: appViewModel.rooms)
+            ScrollView {
+                BabciaVStack(spacing: .small) {
+                    if appViewModel.rooms.isEmpty {
+                        Text("Create your first area to get started.")
+                            .babciaTextStyle(.body)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        ForEach(appViewModel.rooms) { room in
+                            NavigationLink(value: room.id) {
+                                AreaRow(room: room)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .babciaScreenPadding()
                 }
+                .babciaPadding()
             }
-            .navigationTitle("Spaces")
+            .babciaScreen()
+            .navigationTitle("Areas")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingCreateRoom = true
                     } label: {
-                        Image(systemName: BabciaIcon.add.systemName)
+                        Image(systemName: "plus")
                     }
-                    .accessibilityLabel("Create room")
+                    .accessibilityLabel("Create area")
                 }
             }
             .sheet(isPresented: $showingCreateRoom) {
@@ -44,114 +48,42 @@ struct RoomsTab: View {
     }
 }
 
-struct DreamGallerySection: View {
-    let rooms: [Room]
-    @Namespace private var dreamNamespace
+// MARK: - Categories1 Row
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: BabciaSpacing.md) {
-            Text("Dream Gallery")
-                .font(.babcia(.headingSm))
+extension AreasTab {
+    struct AreaRow: View {
+        let room: Room
 
-            if rooms.isEmpty {
-                Text("No rooms yet. Add one to begin.")
-                    .font(.babcia(.caption))
+        var body: some View {
+            BabciaHStack(spacing: .medium) {
+                RoomThumbnail(room: room)
+                    .babciaPadding(.leading, .regular)
+                    .babciaPadding(.vertical, .regular)
+
+                BabciaVStack(alignment: .leading, spacing: .zero) {
+                    Text(room.name)
+                        .babciaTextStyle(.smallHeadline)
+                    Text("\(room.pendingTaskCount) pending")
+                        .babciaTextStyle(.caption1)
+                        .foregroundColor(.secondary)
+                }
+                .babciaPadding(.vertical, .regular)
+                .babciaFullWidth()
+            }
+            .overlay(alignment: .trailing) {
+                Image(systemName: "chevron.right")
                     .foregroundColor(.secondary)
-            } else {
-                BabciaGlassGroup(spacing: 40) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: BabciaSpacing.cardGap) {
-                            ForEach(rooms) { room in
-                                DreamThumbnail(room: room)
-                                    .babciaGlassEffectID(room.id, in: dreamNamespace)
-                            }
-                        }
-                        .padding(.horizontal, BabciaSpacing.xs)
-                        .padding(.vertical, BabciaSpacing.xs)
-                    }
-                }
+                    .babciaPadding(.regular)
             }
+            .babciaSecondaryBackground()
+            .babciaCornerRadius()
         }
-        .babciaCardPadding()
-        .babciaGlassCard()
-        .babciaFullWidthLeading()
     }
-}
 
-struct DreamThumbnail: View {
-    let room: Room
+    struct RoomThumbnail: View {
+        let room: Room
 
-    var body: some View {
-        ZStack {
-            if let url = room.dreamVisionURL {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        Image(room.character.headshotAssetName)
-                            .resizable()
-                            .scaledToFit()
-                            .padding(BabciaSpacing.sm)
-                    }
-                }
-            } else {
-                Image(room.character.headshotAssetName)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(BabciaSpacing.sm)
-            }
-        }
-        .frame(width: BabciaSize.thumbnailLg, height: BabciaSize.cardImageSm)
-        .background(Color(.secondarySystemBackground))
-        .clipped()
-        .cornerRadius(BabciaCorner.cardImage)
-        .overlay(
-            RoundedRectangle(cornerRadius: BabciaCorner.cardImage)
-                .stroke(Color.white.opacity(0.3), lineWidth: 1)
-        )
-    }
-}
-
-struct RoomsListCard: View {
-    let rooms: [Room]
-    @Namespace private var roomsNamespace
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: BabciaSpacing.md) {
-            Text("Rooms")
-                .font(.babcia(.headingSm))
-
-            if rooms.isEmpty {
-                Text("No rooms yet. Tap + to add one.")
-                    .font(.babcia(.caption))
-                    .foregroundColor(.secondary)
-            } else {
-                BabciaGlassGroup(spacing: 12) {
-                    VStack(spacing: BabciaSpacing.listItemGap) {
-                        ForEach(rooms) { room in
-                            NavigationLink(value: room.id) {
-                                RoomRow(room: room)
-                            }
-                            .babciaGlassEffectID(room.id, in: roomsNamespace)
-                        }
-                    }
-                }
-            }
-        }
-        .babciaCardPadding()
-        .babciaGlassCard()
-        .babciaFullWidthLeading()
-    }
-}
-
-struct RoomRow: View {
-    let room: Room
-
-    var body: some View {
-        HStack(spacing: BabciaSpacing.md) {
+        var body: some View {
             ZStack {
                 if let url = room.dreamVisionURL {
                     AsyncImage(url: url) { phase in
@@ -164,41 +96,17 @@ struct RoomRow: View {
                             Image(room.character.headshotAssetName)
                                 .resizable()
                                 .scaledToFit()
-                                .padding(BabciaSpacing.xxs)
                         }
                     }
                 } else {
                     Image(room.character.headshotAssetName)
                         .resizable()
                         .scaledToFit()
-                        .padding(BabciaSpacing.xxs)
                 }
             }
-            .frame(width: BabciaSize.thumbnailSm, height: BabciaSize.thumbnailSm)
-            .background(Color(.secondarySystemBackground))
+            .frame(width: 60, height: 60)
             .clipped()
-            .cornerRadius(BabciaCorner.cardImage)
-
-            VStack(alignment: .leading, spacing: BabciaSpacing.xxs) {
-                Text(room.name)
-                    .font(.babcia(.headingSm))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-
-                Text("\(room.pendingTaskCount) pending")
-                    .font(.babcia(.caption))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-
-            Spacer()
-
-            Text("\(room.streak)d")
-                .font(.babcia(.caption))
-                .foregroundColor(.secondary)
+            .babciaCornerRadius()
         }
-        .padding(BabciaSpacing.sm)
-        .babciaFullWidthLeading()
     }
 }

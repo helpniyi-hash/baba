@@ -1,103 +1,68 @@
 import SwiftUI
-import Presentation
-import Common
 import Core
+import Presentation
 
 struct SettingsTab: View {
     @EnvironmentObject private var appViewModel: AppViewModel
     @State private var showingSettingsDetail = false
     @State private var showingResetAlert = false
 
+    private var connectionsStatus: String {
+        let geminiOK = !appViewModel.settings.geminiAPIKey.isEmpty
+        let haOK = !appViewModel.settings.homeAssistantURL.isEmpty
+        if geminiOK && haOK { return "All connected" }
+        if geminiOK { return "Gemini only" }
+        if haOK { return "Home Assistant only" }
+        return "Not configured"
+    }
+
     var body: some View {
         NavigationStack {
-            ZStack {
-                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .subtle))
+            ScrollView {
+                BabciaVStack {
+                    ProfileHeader(character: appViewModel.settings.selectedCharacter)
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: BabciaSpacing.sectionGap) {
-                        VStack(alignment: .leading, spacing: BabciaSpacing.md) {
-                            Text("Setup")
-                                .font(.babcia(.headingSm))
-                                .foregroundColor(.primary)
-
-                            BabciaGlassGroup(spacing: 20) {
-                                VStack(spacing: BabciaSpacing.listItemGap) {
-                                    Button {
-                                        showingSettingsDetail = true
-                                    } label: {
-                                        SettingsRow(
-                                            icon: .info,
-                                            title: "Connections",
-                                            detail: connectionsStatus
-                                        )
-                                    }
-                                    .buttonStyle(BabciaGlassCardButtonStyle())
-                                    .babciaGlassCard(interactive: true)
-                                    .babciaFullWidthLeading()
-
-                                    Button {
-                                        showingResetAlert = true
-                                    } label: {
-                                        SettingsRow(
-                                            icon: .warning,
-                                            title: "Reset Setup",
-                                            detail: nil,
-                                            tint: .red
-                                        )
-                                    }
-                                    .buttonStyle(BabciaGlassCardButtonStyle())
-                                    .babciaGlassCard(interactive: true)
-                                    .babciaFullWidthLeading()
-                                }
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: BabciaSpacing.md) {
-                            Text("Appearance")
-                                .font(.babcia(.headingSm))
-                                .foregroundColor(.primary)
-
-                            BabciaGlassGroup(spacing: 20) {
-                                VStack(spacing: BabciaSpacing.listItemGap) {
-                                    Menu {
-                                        ForEach(AppTheme.allCases, id: \.self) { theme in
-                                            Button(theme.displayName) {
-                                                appViewModel.updateTheme(theme)
-                                            }
-                                        }
-                                    } label: {
-                                        SettingsPickerRow(title: "Theme", value: appViewModel.settings.theme.displayName)
-                                    }
-                                    .buttonStyle(BabciaGlassCardButtonStyle())
-                                    .babciaGlassCard(interactive: true)
-                                    .babciaFullWidthLeading()
-
-                                    Menu {
-                                        ForEach(BabciaCharacter.allCases) { character in
-                                            Button(character.displayName) {
-                                                appViewModel.updateSelectedCharacter(character)
-                                            }
-                                        }
-                                    } label: {
-                                        SettingsPickerRow(title: "Babcia Mode", value: appViewModel.settings.selectedCharacter.displayName)
-                                    }
-                                    .buttonStyle(BabciaGlassCardButtonStyle())
-                                    .babciaGlassCard(interactive: true)
-                                    .babciaFullWidthLeading()
-                                }
-                            }
-
-                            Text("Babcia Mode controls how strict verification feels.")
-                                .font(.babcia(.caption))
-                                .foregroundColor(.secondary)
+                    SettingsGroup(title: "Setup") {
+                        SettingsActionRow(
+                            icon: "link",
+                            title: "Connections",
+                            detail: connectionsStatus
+                        ) {
+                            showingSettingsDetail = true
                         }
                     }
-                    .babciaScreenPadding()
+
+                    SettingsGroup(title: "Appearance") {
+                        SettingsMenuRow(
+                            icon: "paintbrush",
+                            title: "Theme",
+                            value: appViewModel.settings.theme.displayName,
+                            options: AppTheme.allCases.map { ($0.displayName, $0) },
+                            onSelect: { appViewModel.updateTheme($0) }
+                        )
+
+                        SettingsMenuRow(
+                            icon: "person.crop.circle",
+                            title: "Character",
+                            value: appViewModel.settings.selectedCharacter.displayName,
+                            options: BabciaCharacter.allCases.map { ($0.displayName, $0) },
+                            onSelect: { appViewModel.updateSelectedCharacter($0) }
+                        )
+                    }
+                }
+                .babciaPadding()
+            }
+            .safeAreaInset(edge: .bottom) {
+                BabciaBottomContainer {
+                    BabciaButton(title: "Reset Setup", style: .secondary) {
+                        showingResetAlert = true
+                    }
                 }
             }
+            .babciaScreen()
             .navigationTitle("Settings")
             .sheet(isPresented: $showingSettingsDetail) {
-                SettingsDetailView()
+                SetupConnectionsView()
             }
             .alert("Reset Setup", isPresented: $showingResetAlert) {
                 Button("Cancel", role: .cancel) {}
@@ -105,234 +70,181 @@ struct SettingsTab: View {
                     appViewModel.resetSetup()
                 }
             } message: {
-                Text("This will clear API keys and setup status.")
+                Text("This will clear all your settings and data.")
             }
-        }
-    }
-
-    private var connectionsStatus: String {
-        let hasGemini = !appViewModel.settings.geminiAPIKey.isEmpty
-        let hasHA = !appViewModel.settings.homeAssistantURL.isEmpty && !appViewModel.settings.homeAssistantToken.isEmpty
-
-        switch (hasGemini, hasHA) {
-        case (true, true):
-            return "Gemini + Home Assistant"
-        case (true, false):
-            return "Gemini only"
-        case (false, true):
-            return "Home Assistant only"
-        default:
-            return "Not configured"
         }
     }
 }
 
-struct SettingsRow: View {
-    let icon: BabciaIcon
-    let title: String
-    let detail: String?
-    var tint: Color = .blue
+// MARK: - Profile Header
 
-    var body: some View {
-        HStack(spacing: BabciaSpacing.md) {
-            Image(systemName: icon.systemName)
-                .font(.system(size: BabciaSize.iconSm, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: BabciaSize.buttonSm, height: BabciaSize.buttonSm)
-                .background(tint)
-                .cornerRadius(BabciaCorner.sm)
+extension SettingsTab {
+    struct ProfileHeader: View {
+        let character: BabciaCharacter
 
-            VStack(alignment: .leading, spacing: BabciaSpacing.xxs) {
-                Text(title)
-                    .font(.babcia(.bodyLg))
+        var body: some View {
+            BabciaVStack(alignment: .center, spacing: .regular) {
+                Image(character.headshotAssetName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 80, height: 80)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(Color(hex: character.accentHex), lineWidth: 3)
+                    )
 
-                if let detail {
-                    Text(detail)
-                        .font(.babcia(.caption))
+                BabciaVStack(alignment: .center, spacing: .zero) {
+                    Text(character.displayName)
+                        .babciaTextStyle(.headline)
+                    Text(character.tagline)
+                        .babciaTextStyle(.smallSubheadline)
                         .foregroundColor(.secondary)
                 }
             }
-
-            Spacer()
-            Image(systemName: BabciaIcon.chevronRight.systemName)
-                .font(.system(size: BabciaSize.iconXs, weight: .semibold))
-                .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity)
+            .babciaPadding(.vertical, .large)
         }
-        .padding(.vertical, BabciaSpacing.xs)
-        .padding(.horizontal, BabciaSpacing.md)
-        .babciaFullWidthLeading()
     }
 }
 
-struct SettingsPickerRow: View {
-    let title: String
-    let value: String
+// MARK: - Settings Group
 
-    var body: some View {
-        HStack(spacing: BabciaSpacing.md) {
-            Text(title)
-                .font(.babcia(.bodyLg))
-                .foregroundColor(.primary)
+extension SettingsTab {
+    struct SettingsGroup<Content: View>: View {
+        let title: String
+        @ViewBuilder let content: () -> Content
 
-            Spacer()
+        var body: some View {
+            BabciaVStack(spacing: .small) {
+                Text(title)
+                    .babciaTextStyle(.smallSubheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(value)
-                .font(.babcia(.caption))
-                .foregroundColor(.secondary)
-
-            Image(systemName: BabciaIcon.chevronRight.systemName)
-                .font(.system(size: BabciaSize.iconXs, weight: .semibold))
-                .foregroundColor(.secondary)
+                BabciaVStack(spacing: .small) {
+                    content()
+                }
+            }
         }
-        .padding(.vertical, BabciaSpacing.xs)
-        .padding(.horizontal, BabciaSpacing.md)
-        .babciaFullWidthLeading()
     }
 }
 
-struct SettingsDetailView: View {
-    @EnvironmentObject private var appViewModel: AppViewModel
-    @Environment(\.dismiss) private var dismiss
+// MARK: - Action Row
 
-    @State private var geminiKey = ""
-    @State private var homeAssistantURL = ""
-    @State private var homeAssistantToken = ""
-    @State private var defaultCameraEntityId = ""
-    @State private var geminiTestResult: String?
-    @State private var haTestResult: String?
-    @State private var isTestingGemini = false
-    @State private var isTestingHA = false
+extension SettingsTab {
+    struct SettingsActionRow: View {
+        @Environment(\.babciaAppearance) private var appearance
+
+        let icon: String
+        let title: String
+        let detail: String?
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                BabciaHStack {
+                    Image(systemName: icon)
+                        .foregroundColor(appearance.accentColor.color)
+                        .frame(width: 24)
+
+                    Text(title)
+                        .babciaTextStyle(.smallHeadline)
+
+                    Spacer()
+
+                    if let detail {
+                        Text(detail)
+                            .babciaTextStyle(.caption1)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                }
+                .babciaPadding(.horizontal, .regular)
+                .frame(height: appearance.actionElementHeight)
+                .babciaSecondaryBackground()
+                .babciaCornerRadius()
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+// MARK: - Menu Row
+
+extension SettingsTab {
+    struct SettingsMenuRow<T: Hashable>: View {
+        let icon: String
+        let title: String
+        let value: String
+        let options: [(String, T)]
+        let onSelect: (T) -> Void
+
+        var body: some View {
+            Menu {
+                ForEach(options, id: \.1) { option in
+                    Button(option.0) { onSelect(option.1) }
+                }
+            } label: {
+                SettingsActionLabel(icon: icon, title: title, detail: value)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    struct SettingsActionLabel: View {
+        @Environment(\.babciaAppearance) private var appearance
+
+        let icon: String
+        let title: String
+        let detail: String
+
+        var body: some View {
+            BabciaHStack {
+                Image(systemName: icon)
+                    .foregroundColor(appearance.accentColor.color)
+                    .frame(width: 24)
+
+                Text(title)
+                    .babciaTextStyle(.smallHeadline)
+
+                Spacer()
+
+                Text(detail)
+                    .babciaTextStyle(.caption1)
+                    .foregroundColor(.secondary)
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .foregroundColor(.secondary)
+            }
+            .babciaPadding(.horizontal, .regular)
+            .frame(height: appearance.actionElementHeight)
+            .babciaSecondaryBackground()
+            .babciaCornerRadius()
+        }
+    }
+}
+
+// MARK: - Placeholder Views
+
+struct SetupConnectionsView: View {
+    @Environment(\.dismiss) var dismiss
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                BabciaBackground(style: .gradient(appViewModel.settings.selectedCharacter, .subtle))
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: BabciaSpacing.sectionGap) {
-                        VStack(alignment: .leading, spacing: BabciaSpacing.md) {
-                            Text("Gemini")
-                                .font(.babcia(.headingSm))
-
-                            BabciaSecureField("Gemini API Key", text: $geminiKey)
-                                .accessibilityLabel("Gemini API Key")
-
-                            Button(isTestingGemini ? "Testing..." : "Test Gemini") {
-                                testGemini()
-                            }
-                            .babciaGlassButton()
-                            .disabled(isTestingGemini || geminiKey.isEmpty)
-
-                            if let geminiTestResult {
-                                Text(geminiTestResult)
-                                    .font(.babcia(.caption))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .babciaCardPadding()
-                        .babciaGlassCard()
-                        .babciaFullWidthLeading()
-
-                        VStack(alignment: .leading, spacing: BabciaSpacing.md) {
-                            Text("Home Assistant")
-                                .font(.babcia(.headingSm))
-
-                            BabciaTextField(
-                                "Base URL",
-                                text: $homeAssistantURL,
-                                keyboardType: .URL,
-                                textContentType: .URL,
-                                capitalization: .never,
-                                disableAutocorrection: true
-                            )
-
-                            BabciaSecureField("Access Token", text: $homeAssistantToken)
-                                .accessibilityLabel("Home Assistant Access Token")
-
-                            BabciaTextField(
-                                "Default Camera Entity ID",
-                                text: $defaultCameraEntityId,
-                                capitalization: .never,
-                                disableAutocorrection: true
-                            )
-
-                            Button(isTestingHA ? "Testing..." : "Test Home Assistant") {
-                                testHomeAssistant()
-                            }
-                            .babciaGlassButton()
-                            .disabled(isTestingHA || homeAssistantURL.isEmpty || homeAssistantToken.isEmpty)
-
-                            if let haTestResult {
-                                Text(haTestResult)
-                                    .font(.babcia(.caption))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .babciaCardPadding()
-                        .babciaGlassCard()
-                        .babciaFullWidthLeading()
-                    }
-                    .babciaScreenPadding()
-                }
-            }
-            .navigationTitle("Connections")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+            Text("Connections Setup")
+                .navigationTitle("Connections")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { dismiss() }
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") {
-                        save()
-                        dismiss()
-                    }
-                }
-            }
-            .onAppear {
-                geminiKey = appViewModel.settings.geminiAPIKey
-                homeAssistantURL = appViewModel.settings.homeAssistantURL
-                homeAssistantToken = appViewModel.settings.homeAssistantToken
-                defaultCameraEntityId = appViewModel.settings.defaultCameraEntityId
-            }
         }
     }
+}
 
-    private func save() {
-        appViewModel.updateSettings(
-            geminiKey: geminiKey,
-            homeAssistantURL: homeAssistantURL,
-            homeAssistantToken: homeAssistantToken,
-            defaultCameraEntityId: defaultCameraEntityId
-        )
-    }
-
-    private func testGemini() {
-        isTestingGemini = true
-        geminiTestResult = nil
-
-        Task {
-            let valid = await appViewModel.validateGeminiKey(geminiKey)
-            await MainActor.run {
-                geminiTestResult = valid ? "Gemini key is valid" : "Gemini key is invalid"
-                isTestingGemini = false
-            }
-        }
-    }
-
-    private func testHomeAssistant() {
-        isTestingHA = true
-        haTestResult = nil
-
-        Task {
-            let ok = await appViewModel.testHomeAssistantConnection(
-                baseURL: homeAssistantURL.trimmingCharacters(in: .whitespacesAndNewlines),
-                token: homeAssistantToken.trimmingCharacters(in: .whitespacesAndNewlines)
-            )
-            await MainActor.run {
-                haTestResult = ok ? "Home Assistant connected" : "Home Assistant failed"
-                isTestingHA = false
-            }
-        }
-    }
+#Preview {
+    SettingsTab()
 }

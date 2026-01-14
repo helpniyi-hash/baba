@@ -249,3 +249,27 @@ struct CreateRoomSheet: View {
         }
     }
 }
+
+private struct SettingsPickerRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: BabciaSpacing.sm) {
+            Text(title)
+                .font(.babcia(.bodyMd))
+
+            Spacer(minLength: BabciaSpacing.sm)
+
+            Text(value)
+                .font(.babcia(.bodyMd))
+                .foregroundColor(.secondary)
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: BabciaSize.iconSm))
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, BabciaSpacing.xs)
+        .padding(.horizontal, BabciaSpacing.md)
+    }
+}

@@ -10,7 +10,7 @@ struct HomeView: View {
                 .tag(MainTab.home)
                 .tabItem { Label(MainTab.home.title, systemImage: MainTab.home.icon.systemName) }
 
-            RoomsTab()
+            AreasTab()
                 .tag(MainTab.spaces)
                 .tabItem { Label(MainTab.spaces.title, systemImage: MainTab.spaces.icon.systemName) }
 
