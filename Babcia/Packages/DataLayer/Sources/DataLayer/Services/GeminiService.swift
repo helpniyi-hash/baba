@@ -5,86 +5,10 @@ import Core
 actor GeminiService {
     static let shared = GeminiService()
 
-    private let imageModelURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
     private let textModelURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
     private init() {}
 
-    func generateDreamVision(
-        roomImage: UIImage,
-        character: BabciaCharacter,
-        apiKey: String
-    ) async throws -> UIImage {
-        guard let resizedImage = roomImage.resizedTo(maxDimension: 1024),
-              let imageData = resizedImage.jpegData(compressionQuality: 0.8) else {
-            throw GeminiError.imageProcessingFailed
-        }
-
-        let base64Image = imageData.base64EncodedString()
-
-        let prompt = """
-        Analyze the provided image to identify its permanent structural elements (walls, floors, windows, ceiling) and major furniture fixtures.
-
-        1. ACTION (Decluttering):
-           - Remove ALL 'loose' objects: wires, trash, bottles, papers, clothes, dishes, countertop appliances, bins, vacuum cleaners, laundry baskets
-           - Keep ONLY 'major' furniture: cabinets, tables, chairs, sofas, major appliances (fridge, stove, oven)
-           - ALL surfaces (floors, tables, counters) must be COMPLETELY EMPTY and pristine
-
-        \(character.dreamVisionPrompt)
-
-        3. GEOMETRY:
-           - Maintain the EXACT perspective and camera angle of the original image
-           - Keep the window and light source positions identical
-           - Same room layout, same architectural features
-
-        4. OUTPUT SIZE:
-           - Generate image in SQUARE orientation (1:1 aspect ratio)
-           - This is for a mobile header image that will be full-bleed and square
-           - Keep the main subject centered with clean edges
-        """
-
-        let requestBody: [String: Any] = [
-            "contents": [
-                [
-                    "parts": [
-                        ["text": prompt],
-                        [
-                            "inline_data": [
-                                "mime_type": "image/jpeg",
-                                "data": base64Image
-                            ]
-                        ]
-                    ]
-                ]
-            ],
-            "generationConfig": [
-                "responseModalities": ["IMAGE"]
-            ]
-        ]
-
-        guard let url = URL(string: "\(imageModelURL)?key=\(apiKey)") else {
-            throw GeminiError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        request.timeoutInterval = 120
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw GeminiError.invalidResponse
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw GeminiError.apiError(statusCode: httpResponse.statusCode, message: errorMessage)
-        }
-
-        return try parseImageResponse(data)
-    }
 
     func analyzeRoom(
         roomImage: UIImage,
@@ -275,33 +199,6 @@ actor GeminiService {
         return (response as? HTTPURLResponse)?.statusCode == 200
     }
 
-    private func parseImageResponse(_ data: Data) throws -> UIImage {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first,
-              let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]] else {
-            throw GeminiError.parsingFailed
-        }
-
-        for part in parts {
-            if let inlineData = part["inlineData"] as? [String: Any],
-               let base64Data = inlineData["data"] as? String,
-               let imageData = Data(base64Encoded: base64Data),
-               let image = UIImage(data: imageData) {
-                return image
-            }
-
-            if let inlineData = part["inline_data"] as? [String: Any],
-               let base64Data = inlineData["data"] as? String,
-               let imageData = Data(base64Encoded: base64Data),
-               let image = UIImage(data: imageData) {
-                return image
-            }
-        }
-
-        throw GeminiError.noImageInResponse
-    }
 
     private func parseAnalysisResponse(_ data: Data) throws -> (tasks: [String], advice: String) {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
